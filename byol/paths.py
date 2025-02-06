@@ -7,7 +7,7 @@ class Path_Handler:
     def __init__(self, **kwargs):
         # use defaults except where specified in kwargs e.g. Path_Handler(data=some_alternative_dir)
         path_dict = {}
-        path_dict["root"] = kwargs.get("root", Path(__file__).resolve().parent.parent.parent)
+        path_dict["root"] = kwargs.get("root", Path(__file__).resolve().parent.parent)
         path_dict["project"] = kwargs.get(
             "project", Path(__file__).resolve().parent.parent
         )  # i.e. this repo
