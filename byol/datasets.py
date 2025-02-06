@@ -88,6 +88,7 @@ class MiraBest_F(data.Dataset):
         self.aug_type = aug_type
 
         if download:
+            print('Downloading...')
             self.download()
 
         if not self._check_integrity():
@@ -218,7 +219,7 @@ class MiraBest_F(data.Dataset):
         import tarfile
 
         if self._check_integrity():
-            # print('Files already downloaded and verified')
+            print('Files already downloaded and verified')
             return
 
         download_url(self.url, self.root, self.filename, self.tgz_md5)
