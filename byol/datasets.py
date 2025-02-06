@@ -87,6 +87,8 @@ class MiraBest_F(data.Dataset):
         self.train = train  # training set or test set
         self.aug_type = aug_type
 
+        print('Download='download)
+
         if download:
             print('Downloading...')
             self.download()
