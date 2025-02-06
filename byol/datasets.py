@@ -7,7 +7,6 @@ import sys
 import torchvision.transforms as T
 import pytorch_lightning as pl
 import torch.utils.data as data
-import logging
 
 if sys.version_info[0] == 2:
     import cPickle as pickle
@@ -88,14 +87,10 @@ class MiraBest_F(data.Dataset):
         self.train = train  # training set or test set
         self.aug_type = aug_type
 
-        logging.basicConfig(level=logging.DEBUG)
-
         if download:
-            logging.debug('Downloading...')
             self.download()
 
         if not self._check_integrity():
-            logging.debug('Checking dataset integrity...')
             raise RuntimeError(
                 "Dataset not found or corrupted." + " You can use download=True to download it"
             )
