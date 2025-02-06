@@ -76,7 +76,7 @@ class MiraBest_F(data.Dataset):
         train: Optional[bool] = True,
         transform=None,
         target_transform=None,
-        download=False,
+        download=True,
         test_size=None,
         aug_type="torchvision",
         data_type="double",
