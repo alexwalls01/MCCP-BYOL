@@ -94,6 +94,7 @@ class MiraBest_F(data.Dataset):
             self.download()
 
         if not self._check_integrity():
+            print('Test')
             raise RuntimeError(
                 "Dataset not found or corrupted." + " You can use download=True to download it"
             )
