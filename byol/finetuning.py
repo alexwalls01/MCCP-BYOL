@@ -321,7 +321,7 @@ def main():
         if config["augmentations"]["center_crop"] is True:
             config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
 
-        project_name = "BYOL_finetune_reproduce"
+        project_name = "BYOL_finetune_3classes"
 
         config["finetune"]["seed"] = seed
         pl.seed_everything(seed)
