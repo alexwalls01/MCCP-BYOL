@@ -325,7 +325,7 @@ class MBFRConfident(MiraBest_F):
             hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
             targets[fr1_mask] = 0  # set all FRI to Class~0
             targets[fr2_mask] = 1  # set all FRII to Class~1
-            targets[hybrid_mask] = 3 # set all hybrids to Class~2
+            targets[hybrid_mask] = 2 # set all hybrids to Class~2
             self.data = self.data[exclude_mask]
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
