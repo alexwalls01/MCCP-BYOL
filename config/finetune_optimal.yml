@@ -4,7 +4,7 @@ finetune:
   preset: 'optimal'
   dataset: 'mb'
   n_layers: -1 # -1 finetunes all layers
-  n_classes: 2 
+  n_classes: 3 
   iterations: 10
   lr_decay: 0.75
   n_epochs: 300
