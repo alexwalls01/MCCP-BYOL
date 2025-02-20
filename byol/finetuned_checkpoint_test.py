@@ -100,13 +100,26 @@ def get_accuracy(ckpt_path):
     model = load_checkpoint(ckpt_path)
     prediction_loader = load_dataloader()
     batch_results = trainer.predict(model, dataloaders=prediction_loader)
+    
     # Initialize aggregated counts for each class
     aggregated = {}
     for class_idx in range(model.n_classes):
         aggregated[f"class_{class_idx}"] = {"correct": 0, "total": 0}
 
-    # Aggregate counts over all batches
-    for batch_result in batch_results:
+    # Flatten the nested list of results.
+    flat_results = []
+    for result in batch_results:
+        if isinstance(result, list):
+            flat_results.extend(result)
+        else:
+            flat_results.append(result)
+    
+    # Initialize aggregated counts for each class
+    aggregated = {f"class_{i}": {"correct": 0, "total": 0} for i in range(model.n_classes)}
+    
+    # Aggregate counts over all flattened batches
+    for batch_result in flat_results:
+        # Each batch_result should be a dictionary; iterate over its items.
         for class_key, counts in batch_result.items():
             aggregated[class_key]["correct"] += counts["correct"]
             aggregated[class_key]["total"] += counts["total"]
