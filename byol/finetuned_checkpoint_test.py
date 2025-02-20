@@ -69,7 +69,7 @@ def load_dataloader(seed):
     config_finetune = load_config_finetune()
     byol_ckpt_path = "byol.ckpt"
     byol_model = BYOL.load_from_checkpoint(byol_ckpt_path)
-    config = config = byol_model.config
+    config = byol_model.config
     config.update(config_finetune)
     config["finetune"]["dim"] = byol_model.encoder.dim
 
