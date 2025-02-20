@@ -64,7 +64,12 @@ def load_checkpoint(ckpt_path):
 
 def load_dataloader():
     paths = Path_Handler()._dict()
-    config = load_config_finetune()
+
+    # Get model config
+    byol_ckpt_path = "byol.ckpt"
+    byol_model = BYOL.load_from_checkpoint(byol_ckpt_path)
+    config = config = byol_model.config
+
     datamodule = RGZ_DataModule_Finetune(
         paths["mb"],
         batch_size=config["finetune"]["batch_size"],
