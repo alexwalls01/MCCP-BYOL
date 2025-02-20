@@ -160,21 +160,38 @@ class FineTune(pl.LightningModule):
         )
     
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        # Unpack the batch (assuming batch = (inputs, targets))
-        x, y = batch
+            # Unpack the batch: x (inputs), y (labels), filenames (identifiers)
+        x, y, filenames = batch
 
-        # Compute model outputs and predicted classes
+        # Run the forward pass and compute predictions
         logits = self.forward(x)
         preds = logits.argmax(dim=1)
 
-        # For each class, count correct predictions and total samples
+        # Convert labels and predictions to lists for easier handling
+        y_list = y.tolist() if torch.is_tensor(y) else y
+        preds_list = preds.tolist() if torch.is_tensor(preds) else preds
+
         results = {}
         for class_idx in range(self.n_classes):
-            mask = (y == class_idx)
-            correct = int((preds[mask] == y[mask]).sum().item()) if mask.sum() > 0 else 0
-            total = int(mask.sum().item())
-            results[f"class_{class_idx}"] = {"correct": correct, "total": total}
-        
+            # Get indices for samples with true label equal to class_idx
+            indices = [i for i, label in enumerate(y_list) if label == class_idx]
+            total = len(indices)
+            if total > 0:
+                # Filenames for correctly predicted samples
+                correct_ids = [filenames[i] for i in indices if preds_list[i] == y_list[i]]
+                # Filenames for incorrectly predicted samples
+                incorrect_ids = [filenames[i] for i in indices if preds_list[i] != y_list[i]]
+                correct = len(correct_ids)
+            else:
+                correct = 0
+                correct_ids = []
+                incorrect_ids = []
+            results[f"class_{class_idx}"] = {
+                "correct": correct,
+                "total": total,
+                "correct_ids": correct_ids,
+                "incorrect_ids": incorrect_ids,
+            }
         return results
 
     def configure_optimizers(self):

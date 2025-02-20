@@ -199,8 +199,10 @@ class MiraBest_F(data.Dataset):
             raise NotImplementedError(
                 f"{self.aug_type} not implemented. Currently 'aug_type' must be either 'albumentations' which defaults to Albumentations or 'torchvision' to be functional."
             )
+        
+        identifier = self.filenames[index] if hasattr(self, "filenames") else index
 
-        return img, target
+        return img, target, identifier
 
     def __len__(self):
         return len(self.data)
