@@ -55,7 +55,7 @@ def load_dataloader():
     return dataloader
 
 def get_accuracy(ckpt_path):
-    trainer = pl.Trainer(gpus=1 if torch.cuda.is_available() else 0)
+    trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     model = load_checkpoint(ckpt_path)
     prediction_loader = load_dataloader()
     batch_results = trainer.predict(model, dataloaders=prediction_loader)
