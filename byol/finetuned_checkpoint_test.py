@@ -91,6 +91,7 @@ def load_dataloader():
         pin_memory=config["dataloading"]["pin_memory"],
         seed=config["finetune"]["seed"],
     )
+    datamodule.setup(stage="test")
     dataloader = datamodule.test_dataloader()
     return dataloader
 
