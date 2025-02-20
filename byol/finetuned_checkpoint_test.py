@@ -62,7 +62,7 @@ def load_checkpoint(ckpt_path):
     model = FineTune.load_from_checkpoint(ckpt_path, encoder=encoder, head=head)
     return model
 
-def load_dataloader():
+def load_dataloader(seed):
     paths = Path_Handler()._dict()
 
     # Get model config
@@ -76,6 +76,9 @@ def load_dataloader():
     # Compatibility with old style config
     if config["augmentations"]["center_crop"] is True:
         config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
+    
+    config["finetune"]["seed"] = 42
+    pl.seed_everything(seed)
 
     datamodule = RGZ_DataModule_Finetune(
         paths["mb"],
