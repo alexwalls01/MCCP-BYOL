@@ -77,7 +77,8 @@ def load_dataloader():
     if config["augmentations"]["center_crop"] is True:
         config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
     
-    config["finetune"]["seed"] = 42
+    seed = 42
+    config["finetune"]["seed"] = seed
     pl.seed_everything(seed)
 
     datamodule = RGZ_DataModule_Finetune(
