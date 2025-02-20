@@ -62,7 +62,7 @@ def load_checkpoint(ckpt_path):
     model = FineTune.load_from_checkpoint(ckpt_path, encoder=encoder, head=head)
     return model
 
-def load_dataloader():
+def load_dataloader(stage):
     paths = Path_Handler()._dict()
 
     # Get model config
@@ -91,14 +91,19 @@ def load_dataloader():
         pin_memory=config["dataloading"]["pin_memory"],
         seed=config["finetune"]["seed"],
     )
-    datamodule.setup(stage="test")
-    dataloader = datamodule.test_dataloader()
+    datamodule.setup(stage=stage)
+    if stage == "test":
+        dataloader = datamodule.test_dataloader()
+    elif stage == "train":
+        dataloader = datamodule.val_dataloader()
+    else:
+        raise ValueError("Unsupported dataloader stage.")
     return dataloader
 
-def get_accuracy(ckpt_path):
+def get_accuracy(ckpt_path, stage):
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     model = load_checkpoint(ckpt_path)
-    prediction_loader = load_dataloader()
+    prediction_loader = load_dataloader(stage)
     batch_results = trainer.predict(model, dataloaders=prediction_loader)
 
     # Initialize aggregated counts for each class
@@ -148,13 +153,13 @@ def get_accuracy(ckpt_path):
     
     return overall_accuracy
 
-def save_accuracy(ckpt_name, ckpt_path, save_folder):
+def save_accuracy(ckpt_name, ckpt_path, save_folder, stage):
     # Ensure save folder exists
     os.makedirs(save_folder, exist_ok=True)
     # Get overall per-class accuracies
-    overall_accuracy = get_accuracy(ckpt_path)
+    overall_accuracy = get_accuracy(ckpt_path, stage)
     # Save overall per-class accuracies to a JSON file
-    output_filepath = os.path.join(save_folder, f"{ckpt_name}_accuracy.json")
+    output_filepath = os.path.join(save_folder, f"{ckpt_name}_{stage}_accuracy.json")
     with open(output_filepath, "w") as f:
         json.dump(overall_accuracy, f, indent=4)
 
@@ -163,7 +168,8 @@ def main():
     ckpt_paths = get_checkpoint_paths("ckpt_config.json")
     save_folder = get_save_folder("ckpt_config.json")
     for i in range (0, len(ckpt_names)):
-        save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder)
+        save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "test")
+        save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "train")
 
 if __name__ == "__main__":
     main()
