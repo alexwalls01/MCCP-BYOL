@@ -100,7 +100,7 @@ def get_accuracy(ckpt_path):
     model = load_checkpoint(ckpt_path)
     prediction_loader = load_dataloader()
     batch_results = trainer.predict(model, dataloaders=prediction_loader)
-    
+
     # Initialize aggregated counts for each class
     aggregated = {}
     for class_idx in range(model.n_classes):
@@ -119,18 +119,25 @@ def get_accuracy(ckpt_path):
     
     # Aggregate counts over all flattened batches
     for batch_result in flat_results:
-        # Each batch_result should be a dictionary; iterate over its items.
         for class_key, counts in batch_result.items():
             aggregated[class_key]["correct"] += counts["correct"]
             aggregated[class_key]["total"] += counts["total"]
-
-    # Compute overall accuracy for each class
+    
+    # Compute overall accuracy and record the number of test points per class
     overall_accuracy = {}
     for class_key, counts in aggregated.items():
         if counts["total"] > 0:
-            overall_accuracy[class_key] = counts["correct"] / counts["total"]
+            overall_accuracy[class_key] = {
+                "accuracy": counts["correct"] / counts["total"],
+                "total": counts["total"],
+                "correct": counts["correct"]
+            }
         else:
-            overall_accuracy[class_key] = None
+            overall_accuracy[class_key] = {
+                "accuracy": None,
+                "total": counts["total"],
+                "correct": counts["correct"]
+            }
     return overall_accuracy
 
 def save_accuracy(ckpt_name, ckpt_path, save_folder):
