@@ -94,7 +94,7 @@ def load_dataloader(stage):
     datamodule.setup(stage=stage)
     if stage == "test":
         dataloader = datamodule.test_dataloader()
-    elif stage == "train":
+    elif stage == "val":
         dataloader = datamodule.val_dataloader()
     else:
         raise ValueError("Unsupported dataloader stage.")
@@ -169,7 +169,7 @@ def main():
     save_folder = get_save_folder("ckpt_config.json")
     for i in range (0, len(ckpt_names)):
         save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "test")
-        save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "train")
+        save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "val")
 
 if __name__ == "__main__":
     main()
