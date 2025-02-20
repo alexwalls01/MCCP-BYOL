@@ -106,7 +106,7 @@ def get_accuracy(ckpt_path):
     for class_idx in range(model.n_classes):
         aggregated[f"class_{class_idx}"] = {"correct": 0, "total": 0}
 
-    # Flatten the nested list of results.
+    # Flatten nested results (if needed)
     flat_results = []
     for result in batch_results:
         if isinstance(result, list):
@@ -114,30 +114,38 @@ def get_accuracy(ckpt_path):
         else:
             flat_results.append(result)
     
-    # Initialize aggregated counts for each class
-    aggregated = {f"class_{i}": {"correct": 0, "total": 0} for i in range(model.n_classes)}
+    # Initialize aggregated counts for each class with keys for both correct and incorrect ids.
+    aggregated = {f"class_{i}": {"correct": 0, "total": 0, "correct_ids": [], "incorrect_ids": []} 
+                  for i in range(model.n_classes)}
     
     # Aggregate counts over all flattened batches
     for batch_result in flat_results:
         for class_key, counts in batch_result.items():
             aggregated[class_key]["correct"] += counts["correct"]
             aggregated[class_key]["total"] += counts["total"]
+            aggregated[class_key]["correct_ids"].extend(counts.get("correct_ids", []))
+            aggregated[class_key]["incorrect_ids"].extend(counts.get("incorrect_ids", []))
     
-    # Compute overall accuracy and record the number of test points per class
+    # Compute overall accuracy per class
     overall_accuracy = {}
     for class_key, counts in aggregated.items():
         if counts["total"] > 0:
             overall_accuracy[class_key] = {
                 "accuracy": counts["correct"] / counts["total"],
                 "total": counts["total"],
-                "correct": counts["correct"]
+                "correct": counts["correct"],
+                "correct_ids": counts["correct_ids"],
+                "incorrect_ids": counts["incorrect_ids"]
             }
         else:
             overall_accuracy[class_key] = {
                 "accuracy": None,
                 "total": counts["total"],
-                "correct": counts["correct"]
+                "correct": counts["correct"],
+                "correct_ids": counts["correct_ids"],
+                "incorrect_ids": counts["incorrect_ids"]
             }
+    
     return overall_accuracy
 
 def save_accuracy(ckpt_name, ckpt_path, save_folder):
