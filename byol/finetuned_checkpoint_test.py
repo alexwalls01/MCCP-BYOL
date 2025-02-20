@@ -1,6 +1,7 @@
 import pytorch_lightning as pl
 import torch
 import json
+import os
 
 from finetuning import FineTune
 from datamodules import RGZ_DataModule_Finetune
@@ -10,7 +11,9 @@ from config import load_config_finetune
 def get_save_folder(ckpt_config):
     with open(ckpt_config, "r") as f:
         data = json.load(f)
-        save_folder = data["save_folder"]
+        folder = data["save_folder"]
+        wandb_project = data["wandb_project"]
+        save_folder = folder + "/" + wandb_project
     return save_folder
 
 def get_checkpoint_paths(ckpt_config):
@@ -48,7 +51,7 @@ def load_dataloader():
         pin_memory=config["dataloading"]["pin_memory"],
         seed=config["finetune"]["seed"],
     )
-    dataloader = datamodule.test_dataloader
+    dataloader = datamodule.test_dataloader()
     return dataloader
 
 def get_accuracy(ckpt_path):
@@ -77,10 +80,13 @@ def get_accuracy(ckpt_path):
     return overall_accuracy
 
 def save_accuracy(ckpt_name, ckpt_path, save_folder):
+    # Ensure save folder exists
+    os.makedirs(save_folder, exist_ok=True)
     # Get overall per-class accuracies
     overall_accuracy = get_accuracy(ckpt_path)
     # Save overall per-class accuracies to a JSON file
-    with open(save_folder + "/" + ckpt_name + "_accuracy.json", "w") as f:
+    output_filepath = os.path.join(save_folder, f"{ckpt_name}_accuracy.json")
+    with open(output_filepath, "w") as f:
         json.dump(overall_accuracy, f, indent=4)
 
 def main():
