@@ -62,7 +62,7 @@ def load_checkpoint(ckpt_path):
     model = FineTune.load_from_checkpoint(ckpt_path, encoder=encoder, head=head)
     return model
 
-def load_dataloader(seed):
+def load_dataloader():
     paths = Path_Handler()._dict()
 
     # Get model config
