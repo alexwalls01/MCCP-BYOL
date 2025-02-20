@@ -66,9 +66,16 @@ def load_dataloader():
     paths = Path_Handler()._dict()
 
     # Get model config
+    config_finetune = load_config_finetune()
     byol_ckpt_path = "byol.ckpt"
     byol_model = BYOL.load_from_checkpoint(byol_ckpt_path)
     config = config = byol_model.config
+    config.update(config_finetune)
+    config["finetune"]["dim"] = byol_model.encoder.dim
+
+    # Compatibility with old style config
+    if config["augmentations"]["center_crop"] is True:
+        config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
 
     datamodule = RGZ_DataModule_Finetune(
         paths["mb"],
