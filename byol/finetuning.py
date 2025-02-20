@@ -158,6 +158,32 @@ class FineTune(pl.LightningModule):
             on_epoch=True,
             add_dataloader_idx=False,
         )
+    
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        # Unpack the batch (assuming batch = (inputs, targets))
+        x, y = batch
+
+        # Compute model outputs
+        logits = self.forward(x)
+
+        # Get predicted class labels
+        preds = logits.argmax(dim=1)
+
+        # Compute per-class accuracy
+        per_class_accuracy = {}
+        for class_idx in range(self.n_classes):
+            # Create a mask for examples of this class
+            mask = (y == class_idx)
+            if mask.sum() > 0:
+                # Compute accuracy: correct predictions over total examples for this class
+                accuracy = (preds[mask] == y[mask]).float().mean().item()
+            else:
+                # If no examples of this class in the batch, return NaN
+                accuracy = float('nan')
+            per_class_accuracy[f"class_{class_idx}"] = accuracy
+
+        return per_class_accuracy
+
 
     def configure_optimizers(self):
         if not self.n_layers and self.head_type == "linear":
