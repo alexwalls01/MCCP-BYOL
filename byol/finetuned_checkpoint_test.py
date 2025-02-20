@@ -7,6 +7,8 @@ from finetuning import FineTune
 from datamodules import RGZ_DataModule_Finetune
 from paths import Path_Handler
 from config import load_config_finetune
+from models import BYOL
+from finetuning import FineTune, MLPHead
 
 def get_save_folder(ckpt_config):
     with open(ckpt_config, "r") as f:
@@ -35,7 +37,29 @@ def get_checkpoint_names(ckpt_config):
     return ckpt_names
 
 def load_checkpoint(ckpt_path):
-    model = FineTune.load_from_checkpoint(ckpt_path)
+    # Load finetuning configuration
+    config = load_config_finetune()
+
+    # Load the pretrained BYOL model to get the encoder.
+    byol_ckpt_path = "byol.ckpt"
+    byol_model = BYOL.load_from_checkpoint(byol_ckpt_path)
+    encoder = byol_model.encoder
+
+    # Recreate the head based on your configuration.
+    if config["finetune"]["head"] == "linear":
+        head = "linear"
+    elif config["finetune"]["head"] == "mlp":
+        head = MLPHead(
+            input_dim=encoder.dim,
+            depth=config["finetune"]["depth"],
+            width=config["finetune"]["width"],
+            output_dim=config["finetune"]["n_classes"],
+        )
+    else:
+        raise ValueError("Unsupported head type specified in config.")
+
+    # Load the finetuned checkpoint
+    model = FineTune.load_from_checkpoint(ckpt_path, encoder=encoder, head=head)
     return model
 
 def load_dataloader():
