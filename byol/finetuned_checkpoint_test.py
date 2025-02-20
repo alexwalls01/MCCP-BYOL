@@ -8,13 +8,13 @@ from paths import Path_Handler
 from config import load_config_finetune
 
 def get_save_folder(ckpt_config):
-    with open(ckpt_config + ".json", "r") as f:
+    with open(ckpt_config, "r") as f:
         data = json.load(f)
         save_folder = data["save_folder"]
     return save_folder
 
 def get_checkpoint_paths(ckpt_config):
-    with open(ckpt_config + ".json", "r") as f:
+    with open(ckpt_config, "r") as f:
         data = json.load(f)
         ckpt_folder = data["ckpt_folder"]
         wandb_project = data["wandb_project"]
@@ -26,7 +26,7 @@ def get_checkpoint_paths(ckpt_config):
     return ckpt_paths
 
 def get_checkpoint_names(ckpt_config):
-    with open(ckpt_config + ".json", "r") as f:
+    with open(ckpt_config, "r") as f:
         data = json.load(f)
         ckpt_names = data["ckpt_names"]
     return ckpt_names
