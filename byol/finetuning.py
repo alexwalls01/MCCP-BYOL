@@ -133,7 +133,7 @@ class FineTune(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # Load data and targets
-        x, y = batch
+        x, y, _ = batch
         logits = self.forward(x)
         y_pred = logits.softmax(dim=-1)
         loss = F.cross_entropy(y_pred, y, label_smoothing=0.1 if self.n_layers else 0)
@@ -141,13 +141,13 @@ class FineTune(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
-        x, y = batch
+        x, y, _ = batch
         preds = self.forward(x)
         self.val_acc(preds, y)
         self.log("finetuning/val_acc", self.val_acc, on_step=False, on_epoch=True)
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
-        x, y = batch
+        x, y, _ = batch
         name = list(self.trainer.datamodule.data["test"].keys())[dataloader_idx]
 
         preds = self.forward(x)
