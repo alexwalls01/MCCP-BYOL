@@ -1,6 +1,7 @@
 finetune:
   # resnet sizes 
-  run_id: 1 # resnet-18 
+  run_id: 1 # resnet-18
+  project name: "BYOL_finetune_unc_hybrids" 
   seed: 69
 
   preset: 'optimal'

@@ -160,7 +160,7 @@ class FineTune(pl.LightningModule):
         )
     
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
-            # Unpack the batch: x (inputs), y (labels), filenames (identifiers)
+        # Unpack the batch: x (inputs), y (labels), filenames (identifiers)
         x, y, filenames = batch
 
         # Run the forward pass and compute predictions
@@ -356,7 +356,7 @@ def main():
         if config["augmentations"]["center_crop"] is True:
             config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
 
-        project_name = "BYOL_finetune_3classes"
+        project_name = "BYOL_finetune_unc_hybrids"
 
         config["finetune"]["seed"] = seed
         pl.seed_everything(seed)
