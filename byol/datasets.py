@@ -135,7 +135,6 @@ class MiraBest_F(data.Dataset):
 
         # If test_size is not None, split data, targets, and filenames consistently.
         if test_size is not None:
-            import numpy as np
             from sklearn.model_selection import train_test_split
 
             # Create an index array for the entire dataset.
