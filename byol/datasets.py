@@ -301,7 +301,7 @@ class MBFRFull(MiraBest_F):
 class MBFRConfident(MiraBest_F):
 
     """
-    Child class to load only confident FRI (0), FRII (1) and hybrid sources (2)
+    Child class to load only confident FRI (0), FRII (1) and confident and uncertain hybrid sources (2)
     [100, 102, 104] and [200, 201]
     """
 
@@ -310,8 +310,8 @@ class MBFRConfident(MiraBest_F):
 
         fr1_list = [0, 1, 2]
         fr2_list = [5, 6]
-        hybrid_list = [8]
-        exclude_list = [3, 4, 7, 9]
+        hybrid_list = [8, 9]
+        exclude_list = [3, 4, 7]
 
         if exclude_list == []:
             return
