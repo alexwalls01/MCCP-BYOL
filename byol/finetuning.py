@@ -164,23 +164,25 @@ class FineTune(pl.LightningModule):
         # Unpack the batch: x (inputs), y (labels), filenames (identifiers)
         x, y, filenames = batch
 
-        # Run the forward pass and compute predictions
+        # Run the forward pass to get logits and predictions.
         logits = self.forward(x)
         preds = logits.argmax(dim=1)
-
-        # Convert labels and predictions to lists for easier handling
+        
+        # Convert tensors to lists where needed.
         y_list = y.tolist() if torch.is_tensor(y) else y
         preds_list = preds.tolist() if torch.is_tensor(preds) else preds
+        # Ensure filenames is a list (if it isn’t already).
+        if not isinstance(filenames, list):
+            filenames = list(filenames)
 
         results = {}
         for class_idx in range(self.n_classes):
-            # Get indices for samples with true label equal to class_idx
-            indices = [i for i, label in enumerate(y_list) if label == class_idx]
+            # Get the indices of samples that belong to the current class using torch.where.
+            indices = torch.where(y == class_idx)[0].tolist()
             total = len(indices)
             if total > 0:
-                # Filenames for correctly predicted samples
+                # Using the indices from the mask, select the filenames for correct/incorrect predictions.
                 correct_ids = [filenames[i] for i in indices if preds_list[i] == y_list[i]]
-                # Filenames for incorrectly predicted samples
                 incorrect_ids = [filenames[i] for i in indices if preds_list[i] != y_list[i]]
                 correct = len(correct_ids)
             else:
@@ -194,6 +196,7 @@ class FineTune(pl.LightningModule):
                 "incorrect_ids": incorrect_ids,
             }
         return results
+
 
     def configure_optimizers(self):
         if not self.n_layers and self.head_type == "linear":
