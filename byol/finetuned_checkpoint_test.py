@@ -171,7 +171,6 @@ def main():
         ckpt_paths.append(path)
     for i in range (0, len(ckpt_names)):
         save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "test")
-        save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "train")
         save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "val")
 
 if __name__ == "__main__":
