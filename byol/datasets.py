@@ -71,15 +71,15 @@ class MiraBest_F(data.Dataset):
     }
 
     def __init__(
-        self,
-        root,
-        train: Optional[bool] = True,
-        transform=None,
-        target_transform=None,
-        download=False,
-        test_size=None,
-        aug_type="torchvision",
-        data_type="double",
+    self,
+    root,
+    train: Optional[bool] = True,
+    transform=None,
+    target_transform=None,
+    download=False,
+    test_size=None,
+    aug_type="torchvision",
+    data_type="double",
     ):
         self.root = os.path.expanduser(root)
         self.transform = transform
@@ -133,25 +133,32 @@ class MiraBest_F(data.Dataset):
         self.data = self.data.transpose((0, 2, 3, 1))
         self.full_targets = self.targets
 
-        # Stratify entire data set according to input ratio (seeded)
+        # If test_size is not None, split data, targets, and filenames consistently.
         if test_size is not None:
-            data_train, data_test, targets_train, targets_test = train_test_split(
-                self.data,
-                self.targets,
+            import numpy as np
+            from sklearn.model_selection import train_test_split
+
+            # Create an index array for the entire dataset.
+            indices = np.arange(len(self.data))
+            # Use train_test_split on indices, stratifying by targets.
+            idx_train, idx_test = train_test_split(
+                indices,
                 test_size=test_size,
-                stratify=self.targets,  # Targets to stratify according to
+                stratify=self.targets,
                 random_state=42,
             )
             if self.train:
-                self.data = data_train
-                self.targets = targets_train
-                self.full_targets = targets_train
+                self.data = self.data[idx_train]
+                self.targets = [self.targets[i] for i in idx_train]
+                self.filenames = [self.filenames[i] for i in idx_train]
+                self.full_targets = self.targets
             else:
-                self.data = data_test
-                self.targets = targets_test
-                self.full_targets = targets_test
+                self.data = self.data[idx_test]
+                self.targets = [self.targets[i] for i in idx_test]
+                self.filenames = [self.filenames[i] for i in idx_test]
+                self.full_targets = self.targets
 
-        self._load_meta()
+            self._load_meta()
 
     def _load_meta(self):
         path = os.path.join(self.root, self.base_folder, self.meta["filename"])
