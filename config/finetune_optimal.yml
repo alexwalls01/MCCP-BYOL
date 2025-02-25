@@ -1,6 +1,6 @@
 finetune:
   run_id: 'none'
-  wandb_project: "BYOL_finetune_unc_hybrids"
+  wandb_project: "BYOL_finetune_3classes"
 
   preset: 'optimal'
   dataset: 'mb'
