@@ -510,7 +510,7 @@ def main():
         if config["augmentations"]["center_crop"] is True:
             config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
 
-        project_name = config_finetune["finetune"]["project_name"]
+        project_name = config_finetune["finetune"]["wandb_project"]
 
         config["finetune"]["seed"] = seed
         pl.seed_everything(seed)
