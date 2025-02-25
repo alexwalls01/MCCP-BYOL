@@ -17,6 +17,7 @@ from paths import Path_Handler
 from config import load_config, update_config, load_config_finetune
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
+from finetuned_checkpoint_test import run_post_evaluation
 
 
 class LogisticRegression(torch.nn.Module):
@@ -356,7 +357,7 @@ def main():
         if config["augmentations"]["center_crop"] is True:
             config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
 
-        project_name = "BYOL_finetune_unc_hybrids"
+        project_name = config_finetune["finetune"]["project_name"]
 
         config["finetune"]["seed"] = seed
         pl.seed_everything(seed)
@@ -382,6 +383,7 @@ def main():
             seed=config["finetune"]["seed"],
         )
         run_finetuning(config, model.encoder, finetune_datamodule, logger)
+        run_post_evaluation(str(wandb.run.id))
         logger.experiment.finish()
         wandb.finish()
 

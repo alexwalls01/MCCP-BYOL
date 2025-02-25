@@ -14,27 +14,18 @@ def get_save_folder(ckpt_config):
     with open(ckpt_config, "r") as f:
         data = json.load(f)
         folder = data["save_folder"]
-        wandb_project = data["wandb_project"]
-        save_folder = folder + "/" + wandb_project
+    finetune_config = load_config_finetune()
+    wandb_project = finetune_config["finetune"]["wandb_project"]
+    save_folder = folder + "/" + wandb_project
     return save_folder
 
-def get_checkpoint_paths(ckpt_config):
+def get_checkpoint_path(ckpt_config, run_id):
     with open(ckpt_config, "r") as f:
         data = json.load(f)
         ckpt_folder = data["ckpt_folder"]
         wandb_project = data["wandb_project"]
-        ckpt_names = data["ckpt_names"]
-    ckpt_paths = []
-    for ckpt_name in ckpt_names:
-        path = ckpt_folder + "/" + ckpt_name + "/" + wandb_project + "/" + ckpt_name + "/" + "checkpoints/" + "epoch=299-step=3600.ckpt"
-        ckpt_paths.append(path)
-    return ckpt_paths
-
-def get_checkpoint_names(ckpt_config):
-    with open(ckpt_config, "r") as f:
-        data = json.load(f)
-        ckpt_names = data["ckpt_names"]
-    return ckpt_names
+    path = ckpt_folder + "/" + run_id + "/" + wandb_project + "/" + run_id + "/" + "checkpoints/" + "epoch=299-step=3600.ckpt"
+    return path
 
 def load_checkpoint(ckpt_path):
     # Load finetuning configuration
@@ -163,13 +154,8 @@ def save_accuracy(ckpt_name, ckpt_path, save_folder, stage):
     with open(output_filepath, "w") as f:
         json.dump(overall_accuracy, f, indent=4)
 
-def main():
-    ckpt_names = get_checkpoint_names("ckpt_config.json")
-    ckpt_paths = get_checkpoint_paths("ckpt_config.json")
+def run_post_evaluation(run_id):
+    ckpt_path = get_checkpoint_path("ckpt_config.json", run_id)
     save_folder = get_save_folder("ckpt_config.json")
-    for i in range (0, len(ckpt_names)):
-        save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "test")
-        save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "val")
-
-if __name__ == "__main__":
-    main()
+    save_accuracy(run_id, ckpt_path, save_folder, "val")
+    save_accuracy(run_id, ckpt_path, save_folder, "test")
