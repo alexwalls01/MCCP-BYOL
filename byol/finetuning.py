@@ -270,7 +270,7 @@ def get_checkpoint_path(ckpt_config, run_id):
         data = json.load(f)
         ckpt_folder = data["ckpt_folder"]
         wandb_project = data["wandb_project"]
-    path = ckpt_folder + "/" + run_id + "/" + wandb_project + "/" + run_id + "/" + "checkpoints/" + "epoch=299-step=3600.ckpt"
+    path = ckpt_folder + run_id + "/" + wandb_project + "/" + run_id + "/" + "checkpoints/" + "epoch=299-step=3600.ckpt"
     return path
 
 def load_checkpoint(ckpt_path):
