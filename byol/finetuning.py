@@ -164,27 +164,33 @@ class FineTune(pl.LightningModule):
         # Unpack the batch: x (inputs), y (labels), filenames (identifiers)
         x, y, filenames = batch
 
-        # Forward pass to get predictions
+        # Run the forward pass to get logits and predictions.
         logits = self.forward(x)
         preds = logits.argmax(dim=1)
-
-        # Convert tensors to lists
+        
+        # Convert tensors to lists where needed.
         y_list = y.tolist() if torch.is_tensor(y) else y
         preds_list = preds.tolist() if torch.is_tensor(preds) else preds
-
-        # Zip together each sample's index, label, prediction, and filename.
-        combined = list(zip(range(len(y_list)), y_list, preds_list, filenames))
+        # Ensure filenames is a list (if it isn’t already).
+        if not isinstance(filenames, list):
+            filenames = list(filenames)
 
         results = {}
         for class_idx in range(self.n_classes):
-            # Group together all items with true label equal to class_idx
-            group = [item for item in combined if item[1] == class_idx]
-            total = len(group)
-            # For those items, check if prediction matches the label
-            correct_ids = [item[3] for item in group if item[1] == item[2]]
-            incorrect_ids = [item[3] for item in group if item[1] != item[2]]
+            # Get the indices of samples that belong to the current class using torch.where.
+            indices = torch.where(y == class_idx)[0].tolist()
+            total = len(indices)
+            if total > 0:
+                # Using the indices from the mask, select the filenames for correct/incorrect predictions.
+                correct_ids = [filenames[i] for i in indices if preds_list[i] == y_list[i]]
+                incorrect_ids = [filenames[i] for i in indices if preds_list[i] != y_list[i]]
+                correct = len(correct_ids)
+            else:
+                correct = 0
+                correct_ids = []
+                incorrect_ids = []
             results[f"class_{class_idx}"] = {
-                "correct": len(correct_ids),
+                "correct": correct,
                 "total": total,
                 "correct_ids": correct_ids,
                 "incorrect_ids": incorrect_ids,
