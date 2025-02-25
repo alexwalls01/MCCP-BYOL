@@ -74,7 +74,7 @@ def load_dataloader(stage):
 
     datamodule = RGZ_DataModule_Finetune(
         paths["mb"],
-        batch_size=config["finetune"]["batch_size"],
+        batch_size=1,
         center_crop=config["augmentations"]["center_crop"],
         val_size=config["finetune"]["val_size"],
         num_workers=config["dataloading"]["num_workers"],
