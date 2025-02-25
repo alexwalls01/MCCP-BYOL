@@ -135,7 +135,6 @@ class MiraBest_F(data.Dataset):
 
         # If test_size is not None, split data, targets, and filenames consistently.
         if test_size is not None:
-            from sklearn.model_selection import train_test_split
 
             # Create an index array for the entire dataset.
             indices = np.arange(len(self.data))
@@ -206,7 +205,7 @@ class MiraBest_F(data.Dataset):
                 f"{self.aug_type} not implemented. Currently 'aug_type' must be either 'albumentations' which defaults to Albumentations or 'torchvision' to be functional."
             )
         
-        identifier = self.filenames[index] if hasattr(self, "filenames") else index
+        identifier = self.filenames[index]
 
         return img, target, identifier
 
