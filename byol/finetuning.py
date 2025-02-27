@@ -194,6 +194,8 @@ class FineTune(pl.LightningModule):
                 "total": total,
                 "correct_ids": correct_ids,
                 "incorrect_ids": incorrect_ids,
+                "all_files": filenames,
+                "all_predictions": preds_list
             }
         return results
 
@@ -360,7 +362,7 @@ def get_accuracy(ckpt_path, stage):
             flat_results.append(result)
     
     # Initialize aggregated counts for each class with keys for both correct and incorrect ids.
-    aggregated = {f"class_{i}": {"correct": 0, "total": 0, "correct_ids": [], "incorrect_ids": []} 
+    aggregated = {f"class_{i}": {"correct": 0, "total": 0, "correct_ids": [], "incorrect_ids": [], "all_files": [], "all_predictions": []} 
                   for i in range(model.n_classes)}
     
     # Aggregate counts over all flattened batches
@@ -370,6 +372,8 @@ def get_accuracy(ckpt_path, stage):
             aggregated[class_key]["total"] += counts["total"]
             aggregated[class_key]["correct_ids"].extend(counts.get("correct_ids", []))
             aggregated[class_key]["incorrect_ids"].extend(counts.get("incorrect_ids", []))
+            aggregated[class_key]["all_files"].extend(counts.get("all_files", []))
+            aggregated[class_key]["all_predictions"].extend(counts.get("all_predictions", []))
     
     # Compute overall accuracy per class
     overall_accuracy = {}
@@ -380,7 +384,9 @@ def get_accuracy(ckpt_path, stage):
                 "total": counts["total"],
                 "correct": counts["correct"],
                 "correct_ids": counts["correct_ids"],
-                "incorrect_ids": counts["incorrect_ids"]
+                "incorrect_ids": counts["incorrect_ids"],
+                "all_files": counts["all_files"],
+                "all_predictions": counts["all_predictions"]
             }
         else:
             overall_accuracy[class_key] = {
@@ -388,7 +394,9 @@ def get_accuracy(ckpt_path, stage):
                 "total": counts["total"],
                 "correct": counts["correct"],
                 "correct_ids": counts["correct_ids"],
-                "incorrect_ids": counts["incorrect_ids"]
+                "incorrect_ids": counts["incorrect_ids"],
+                "all_files": counts["all_files"],
+                "all_predictions": counts["all_predictions"]
             }
     
     return overall_accuracy
