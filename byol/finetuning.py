@@ -185,17 +185,21 @@ class FineTune(pl.LightningModule):
                 correct_ids = [filenames[i] for i in indices if preds_list[i] == y_list[i]]
                 incorrect_ids = [filenames[i] for i in indices if preds_list[i] != y_list[i]]
                 correct = len(correct_ids)
+                all_files = [filenames[i] for i in indices]
+                all_predictions = [preds_list[i] for i in indices]
             else:
                 correct = 0
                 correct_ids = []
                 incorrect_ids = []
+                all_files = []
+                all_predictions = []
             results[f"class_{class_idx}"] = {
                 "correct": correct,
                 "total": total,
                 "correct_ids": correct_ids,
                 "incorrect_ids": incorrect_ids,
-                "all_files": filenames,
-                "all_predictions": preds_list
+                "all_files": all_files,
+                "all_predictions": all_predictions
             }
         return results
 
