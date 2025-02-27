@@ -155,19 +155,19 @@ def save_accuracy(ckpt_name, ckpt_path, save_folder, stage):
         json.dump(overall_accuracy, f, indent=4)
 
 def run_post_evaluation(run_id):
-    ckpt_path = get_checkpoint_path("ckpt_config.json", run_id)
-    save_folder = get_save_folder("ckpt_config.json")
+    ckpt_path = get_checkpoint_path("eval_config.json", run_id)
+    save_folder = get_save_folder("eval_config.json")
     save_accuracy(run_id, ckpt_path, save_folder, "val")
     save_accuracy(run_id, ckpt_path, save_folder, "test")
 
 def main():
-    save_folder = get_save_folder("ckpt_config.json")
-    with open("ckpt_config.json", "r") as f:
+    save_folder = get_save_folder("eval_config.json")
+    with open("eval_config.json", "r") as f:
         data = json.load(f)
         ckpt_names = data["ckpt_names"]
     ckpt_paths = []
     for ckpt in ckpt_names:
-        path = get_checkpoint_path("ckpt_config.json", ckpt)
+        path = get_checkpoint_path("eval_config.json", ckpt)
         ckpt_paths.append(path)
     for i in range (0, len(ckpt_names)):
         save_accuracy(ckpt_names[i], ckpt_paths[i], save_folder, "test")

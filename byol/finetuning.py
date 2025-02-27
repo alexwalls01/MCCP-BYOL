@@ -404,8 +404,8 @@ def save_accuracy(ckpt_name, ckpt_path, save_folder, stage):
         json.dump(overall_accuracy, f, indent=4)
 
 def run_post_evaluation(run_id):
-    ckpt_path = get_checkpoint_path("ckpt_config.json", run_id)
-    save_folder = get_save_folder("ckpt_config.json")
+    ckpt_path = get_checkpoint_path("eval_config.json", run_id)
+    save_folder = get_save_folder("eval_config.json")
     save_accuracy(run_id, ckpt_path, save_folder, "val")
     save_accuracy(run_id, ckpt_path, save_folder, "test")
 
