@@ -178,7 +178,7 @@ class MiraBest_F(data.Dataset):
         Args:
             index (int): Index
         Returns:
-            tuple: (image, target) where target is index of the target class.
+            tuple: (image, target, identifier) where target is index of the target class.
         """
         img, target = self.data[index], self.targets[index]
 
@@ -307,7 +307,7 @@ class MBFRConfident(MiraBest_F):
 
     """
     Child class to load only confident FRI (0), FRII (1) and confident hybrid sources (2)
-    [100, 102, 104] and [200, 201]
+    [100, 102, 104], [200, 201], and [300]
     """
 
     def __init__(self, *args, **kwargs):
@@ -336,6 +336,7 @@ class MBFRConfident(MiraBest_F):
             self.data = self.data[exclude_mask]
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+            self.filenames = np.array(self.filenames)[exclude_mask].tolist()
         else:
             targets = np.array(self.targets)
             exclude = np.array(exclude_list).reshape(1, -1)
@@ -352,13 +353,14 @@ class MBFRConfident(MiraBest_F):
             self.data = self.data[exclude_mask]
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+            self.filenames = np.array(self.filenames)[exclude_mask].tolist()
 
 
 class MBFRUncertain(MiraBest_F):
 
     """
     Child class to load only uncertain FRI (0), FRII (1) and hybrid sources (2)
-    [110, 112] and [210]
+    [110, 112], [210], and [310]
     """
 
     def __init__(self, *args, **kwargs):
@@ -387,6 +389,7 @@ class MBFRUncertain(MiraBest_F):
             self.data = self.data[exclude_mask]
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+            self.filenames = np.array(self.filenames)[exclude_mask].tolist()
         else:
             targets = np.array(self.targets)
             exclude = np.array(exclude_list).reshape(1, -1)
@@ -403,6 +406,7 @@ class MBFRUncertain(MiraBest_F):
             self.data = self.data[exclude_mask]
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+            self.filenames = np.array(self.filenames)[exclude_mask].tolist()
 
 
 class MBHybrid(MiraBest_F):
