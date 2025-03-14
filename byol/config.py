@@ -88,3 +88,12 @@ def load_config_finetune():
             config = yaml.load(ymlconfig, Loader=yaml.FullLoader)
 
     return config
+
+def load_config_evaluation():
+
+    path = path_dict["config"] / "evaluation.yml"
+
+    with open(path, "r") as ymlconfig:
+        config = yaml.load(ymlconfig, Loader=yaml.FullLoader)
+    
+    return config

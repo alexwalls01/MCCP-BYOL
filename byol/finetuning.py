@@ -16,7 +16,7 @@ from torch import Tensor
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
 from paths import Path_Handler
-from config import load_config, update_config, load_config_finetune
+from config import load_config, update_config, load_config_finetune, load_config_evaluation
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
 
@@ -263,25 +263,6 @@ class MLPHead(nn.Module):
 
         return x
 
-# Start of added functions
-
-def get_save_folder(ckpt_config):
-    with open(ckpt_config, "r") as f:
-        data = json.load(f)
-        folder = data["save_folder"]
-    finetune_config = load_config_finetune()
-    wandb_project = finetune_config["finetune"]["wandb_project"]
-    save_folder = folder + "/" + wandb_project
-    return save_folder
-
-def get_checkpoint_path(ckpt_config, run_id):
-    with open(ckpt_config, "r") as f:
-        data = json.load(f)
-        ckpt_folder = data["ckpt_folder"]
-        wandb_project = data["wandb_project"]
-    path = ckpt_folder + run_id + "/" + wandb_project + "/" + run_id + "/" + "checkpoints/" + "epoch=299-step=3600.ckpt"
-    return path
-
 def load_checkpoint(ckpt_path):
     # Load finetuning configuration
     config = load_config_finetune()
@@ -346,7 +327,7 @@ def load_dataloader(stage):
         raise ValueError("Unsupported dataloader stage.")
     return dataloader
 
-def get_accuracy(ckpt_path, stage):
+def calculate_accuracy(ckpt_path, stage):
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     model = load_checkpoint(ckpt_path)
     prediction_loader = load_dataloader(stage)
@@ -405,23 +386,25 @@ def get_accuracy(ckpt_path, stage):
     
     return overall_accuracy
 
-def save_accuracy(ckpt_name, ckpt_path, save_folder, stage):
+def save_accuracy(ckpt_name, ckpt_path, save_dir, stage):
     # Ensure save folder exists
-    os.makedirs(save_folder, exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
     # Get overall per-class accuracies
-    overall_accuracy = get_accuracy(ckpt_path, stage)
+    overall_accuracy = calculate_accuracy(ckpt_path, stage)
     # Save overall per-class accuracies to a JSON file
-    output_filepath = os.path.join(save_folder, f"{ckpt_name}_{stage}_accuracy.json")
+    output_filepath = os.path.join(save_dir, f"{ckpt_name}_{stage}_accuracy.json")
     with open(output_filepath, "w") as f:
         json.dump(overall_accuracy, f, indent=4)
 
 def run_post_evaluation(run_id):
-    ckpt_path = get_checkpoint_path("eval_config.json", run_id)
-    save_folder = get_save_folder("eval_config.json")
-    save_accuracy(run_id, ckpt_path, save_folder, "val")
-    save_accuracy(run_id, ckpt_path, save_folder, "test")
-
-# End of added functions
+    eval_config = load_config_evaluation()
+    finetune_config = load_config_finetune()
+    ckpt_folder = eval_config['ckpt_folder']
+    wandb_project = finetune_config['finetune']['wandb_project']
+    ckpt_path = ckpt_folder + run_id + "/" + wandb_project + "/" + run_id + "/" + "checkpoints/" + "epoch=299-step=3600.ckpt"
+    save_dir = eval_config['save_dir'] + "/" + wandb_project
+    save_accuracy(run_id, ckpt_path, save_dir, "val")
+    save_accuracy(run_id, ckpt_path, save_dir, "test")
 
 def run_finetuning(config, encoder, datamodule, logger):
     checkpoint = ModelCheckpoint(
