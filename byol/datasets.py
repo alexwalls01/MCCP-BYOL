@@ -416,7 +416,7 @@ class MBFRI(MiraBest_F):
     """
 
     def __init__(self, *args, **kwargs):
-        super(MBHybrid, self).__init__(*args, **kwargs)
+        super(MBFRI, self).__init__(*args, **kwargs)
 
         h1_list = [0, 1, 2]
         h2_list = [3, 4]
@@ -459,7 +459,7 @@ class MBFRII(MiraBest_F):
     """
 
     def __init__(self, *args, **kwargs):
-        super(MBHybrid, self).__init__(*args, **kwargs)
+        super(MBFRII, self).__init__(*args, **kwargs)
 
         h1_list = [5, 6]
         h2_list = [7]
@@ -538,6 +538,121 @@ class MBHybrid(MiraBest_F):
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
 
+class MBFRI_Pseudo(MBFRI):
+    """
+    Child class to load FRI sources(confident and uncertain) but override
+    the labels with pseudo labels generated from a provided model.
+    
+    Args:
+        model (torch.nn.Module): A trained model used to generate pseudo labels.
+    """
+    def __init__(self, model, *args, **kwargs):
+        super(MBFRI_Pseudo, self).__init__(*args, **kwargs)
+        self.model = model
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.eval()
+
+    def __getitem__(self, index):
+        # Get the original data (image, label, filename) from MBFRI
+        img, original_label, filename = super(MBFRI_Pseudo, self).__getitem__(index)
+        
+        # If the image is not already a tensor, convert it.
+        if not torch.is_tensor(img):
+            if isinstance(img, np.ndarray):
+                img = torch.from_numpy(img).float()
+            elif isinstance(img, Image.Image):
+                # Convert PIL Image to tensor using default conversion (or customize as needed)
+                img = torch.tensor(np.array(img)).float()
+            else:
+                raise ValueError("Unexpected image type: {}".format(type(img)))
+        
+        # Add a batch dimension and move to device
+        img_batch = img.unsqueeze(0).to(self.device)
+        
+        # Run the model to get pseudo label
+        with torch.no_grad():
+            logits = self.model(img_batch)
+            pseudo_label = logits.argmax(dim=1).item()
+        
+        return img, pseudo_label, filename
+
+    
+class MBFRII_Pseudo(MBFRII):
+    """
+    Child class to load FRII sources(confident and uncertain) but override
+    the labels with pseudo labels generated from a provided model.
+    
+    Args:
+        model (torch.nn.Module): A trained model used to generate pseudo labels.
+    """
+    def __init__(self, model, *args, **kwargs):
+        super(MBFRII_Pseudo, self).__init__(*args, **kwargs)
+        self.model = model
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.eval()
+
+    def __getitem__(self, index):
+        # Get the original data (image, label, filename) from MBFRI
+        img, original_label, filename = super(MBFRII_Pseudo, self).__getitem__(index)
+        
+        # If the image is not already a tensor, convert it.
+        if not torch.is_tensor(img):
+            if isinstance(img, np.ndarray):
+                img = torch.from_numpy(img).float()
+            elif isinstance(img, Image.Image):
+                # Convert PIL Image to tensor using default conversion (or customize as needed)
+                img = torch.tensor(np.array(img)).float()
+            else:
+                raise ValueError("Unexpected image type: {}".format(type(img)))
+        
+        # Add a batch dimension and move to device
+        img_batch = img.unsqueeze(0).to(self.device)
+        
+        # Run the model to get pseudo label
+        with torch.no_grad():
+            logits = self.model(img_batch)
+            pseudo_label = logits.argmax(dim=1).item()
+        
+        return img, pseudo_label, filename
+    
+
+class MBHybrid_Pseudo(MBHybrid):
+    """
+    Child class to load FRI sources(confident and uncertain) but override
+    the labels with pseudo labels generated from a provided model.
+    
+    Args:
+        model (torch.nn.Module): A trained model used to generate pseudo labels.
+    """
+    def __init__(self, model, *args, **kwargs):
+        super(MBHybrid_Pseudo, self).__init__(*args, **kwargs)
+        self.model = model
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.eval()
+
+    def __getitem__(self, index):
+        # Get the original data (image, label, filename) from MBFRI
+        img, original_label, filename = super(MBHybrid_Pseudo, self).__getitem__(index)
+        
+        # If the image is not already a tensor, convert it.
+        if not torch.is_tensor(img):
+            if isinstance(img, np.ndarray):
+                img = torch.from_numpy(img).float()
+            elif isinstance(img, Image.Image):
+                # Convert PIL Image to tensor using default conversion (or customize as needed)
+                img = torch.tensor(np.array(img)).float()
+            else:
+                raise ValueError("Unexpected image type: {}".format(type(img)))
+        
+        # Add a batch dimension and move to device
+        img_batch = img.unsqueeze(0).to(self.device)
+        
+        # Run the model to get pseudo label
+        with torch.no_grad():
+            logits = self.model(img_batch)
+            pseudo_label = logits.argmax(dim=1).item()
+        
+        return img, pseudo_label, filename
 
 class MBRandom(MiraBest_F):
 
@@ -608,16 +723,6 @@ class MBRandom(MiraBest_F):
             exclude_mask = (targets.reshape(-1, 1) == target_list).any(axis=1)
             self.data = self.data[exclude_mask]
             self.targets = targets[exclude_mask].tolist()
-
-class MBFRFiltered(MiraBest_F):
-    def __init__(self, dataset, target_indices):
-        self.target_indices = target_indices
-
-    def __len__(self):
-        return len(self.target_indices)
-
-    def __getitem__(self, idx):
-        return self.dataset[self.indices[idx]]
 
 
 class RGZ108k(D.Dataset):
