@@ -5,6 +5,7 @@ import pytorch_lightning as pl
 import torch
 import torchmetrics as tm
 import torch.nn.functional as F
+import torchvision.transforms as T
 import torch.nn as nn
 import os
 import json
@@ -19,6 +20,8 @@ from paths import Path_Handler
 from config import load_config, update_config, load_config_finetune, load_config_evaluation
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
+from datasets import MBFRI, MBFRII, MBHybrid, MBFRI_Pseudo, MBFRII_Pseudo, MBHybrid_Pseudo
+from plot_embedding import get_umap, plot_embedding
 
 class LogisticRegression(torch.nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -327,9 +330,8 @@ def load_dataloader(stage):
         raise ValueError("Unsupported dataloader stage.")
     return dataloader
 
-def calculate_accuracy(ckpt_path, stage):
+def calculate_accuracy(model, stage):
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
-    model = load_checkpoint(ckpt_path)
     prediction_loader = load_dataloader(stage)
     batch_results = trainer.predict(model, dataloaders=prediction_loader)
 
@@ -386,26 +388,116 @@ def calculate_accuracy(ckpt_path, stage):
     
     return overall_accuracy
 
-def save_accuracy(ckpt_name, ckpt_path, save_dir, stage):
+def save_accuracy(ckpt_name, model, save_dir, stage):
     # Ensure save folder exists
     os.makedirs(save_dir, exist_ok=True)
     # Get overall per-class accuracies
-    overall_accuracy = calculate_accuracy(ckpt_path, stage)
+    overall_accuracy = calculate_accuracy(model, stage)
     # Save overall per-class accuracies to a JSON file
     output_filepath = os.path.join(save_dir, f"{ckpt_name}_{stage}_accuracy.json")
     with open(output_filepath, "w") as f:
         json.dump(overall_accuracy, f, indent=4)
 
 def run_post_evaluation(run_id):
+
+    paths = Path_Handler()._dict()
+
     eval_config = load_config_evaluation()
     finetune_config = load_config_finetune()
+
     ckpt_folder = eval_config['ckpt_folder']
     wandb_project = finetune_config['finetune']['wandb_project']
-    ckpt_path = ckpt_folder + run_id + "/" + wandb_project + "/" + run_id + "/" + "checkpoints/" + "epoch=299-step=3600.ckpt"
     save_dir = eval_config['save_dir'] + "/" + wandb_project
-    save_accuracy(run_id, ckpt_path, save_dir, "val")
-    save_accuracy(run_id, ckpt_path, save_dir, "test")
 
+    ckpt_path = ckpt_folder + run_id + "/" + wandb_project + "/" + run_id + "/" + "checkpoints/" + "epoch=299-step=3600.ckpt"
+    model = load_checkpoint(ckpt_path)
+
+    # Save accuracy data for the run to a JSON file
+    save_accuracy(run_id, model, save_dir, "val")
+    save_accuracy(run_id, model, save_dir, "test")
+    
+    encoder = model.encoder
+    model_config = model.config
+    mu, sig = model_config["data"]["mu"], model_config["data"]["sig"]
+
+    transform = T.Compose(
+        [
+            T.CenterCrop(70),
+            T.ToTensor(),
+            T.Normalize((mu,), (sig,)),
+        ]
+    )
+
+    # Get umap embeddings for data with original MiraBest labels
+    mb_fri = MBFRI(root=paths["mb"],
+                   train=True,
+                   transform=transform,
+                   download=False,
+                   aug_type="torchvision"
+                )
+    mb_fri_umap = get_umap(encoder, mb_fri)
+    
+    mb_frii = MBFRII(root=paths["mb"],
+                   train=True,
+                   transform=transform,
+                   download=False,
+                   aug_type="torchvision"
+                )
+    mb_frii_umap = get_umap(encoder, mb_frii)
+    
+    mb_hybrid = MBHybrid(root=paths["mb"],
+                   train=True,
+                   transform=transform,
+                   download=False,
+                   aug_type="torchvision"
+                )
+    mb_hybrid_umap = get_umap(encoder, mb_hybrid)
+
+    # Get umap embeddings for data with model classifications
+    model_fri = MBFRI_Pseudo(model,
+                        root=paths["mb"],
+                        train=True,
+                        transform=transform,
+                        download=False,
+                        aug_type="torchvision"
+                    )       
+    model_fri_umap = get_umap(encoder, model_fri)
+
+    model_frii = MBFRII_Pseudo(model,
+                    root=paths["mb"],
+                    train=True,
+                    transform=transform,
+                    download=False,
+                    aug_type="torchvision"
+                )
+    model_frii_umap = get_umap(encoder, model_frii)
+
+    model_hybrid = MBHybrid_Pseudo(model,
+                    root=paths["mb"],
+                    train=True,
+                    transform=transform,
+                    download=False,
+                    aug_type="torchvision"
+                )
+    model_hybrid_umap = get_umap(encoder, model_hybrid)
+
+    # Put together data to plot
+    mb_data = {"fri_umap": mb_fri_umap,
+               "frii_umap": mb_frii_umap,
+               "hybrid_umap": mb_hybrid_umap,
+               "title": "MiraBest labels",
+               }
+    model_data = {"fri_umap": model_fri_umap,
+                  "frii_umap": model_frii_umap,
+                  "hybrid_umap": model_hybrid_umap,
+                  "title": "Model classifications",
+                  }
+    plot_data = [mb_data, model_data]
+
+    # Plot embedding
+    plot_embedding(save_dir + "/embedding.png", plot_data)
+
+    
 def run_finetuning(config, encoder, datamodule, logger):
     checkpoint = ModelCheckpoint(
         monitor=None,
