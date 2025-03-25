@@ -438,7 +438,7 @@ def run_post_evaluation(run_id):
         paths["rgz"],
         train=True,
         transform=transform,
-        download=True,
+        download=False,
         remove_duplicates=False,
         cut_threshold=25,
         mb_cut=True,
