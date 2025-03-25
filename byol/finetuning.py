@@ -459,6 +459,8 @@ def run_post_evaluation(run_id):
     mb_hybrid = mb.subset_by_label(2)
 
     # Get umap embeddings for data with model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
     mb.assign_pseudo_labels(model)
     predictions_fri = mb.subset_by_label(0)
     predictions_frii = mb.subset_by_label(1)
