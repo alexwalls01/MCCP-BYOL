@@ -20,7 +20,7 @@ from paths import Path_Handler
 from config import load_config, update_config, load_config_finetune, load_config_evaluation
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
-from datasets import MBFRI, MBFRII, MBHybrid, MBFRI_Pseudo, MBFRII_Pseudo, MBHybrid_Pseudo
+from datasets import MBFRI, MBFRII, MBHybrid
 from plot_embedding import get_umap, plot_embedding
 
 class LogisticRegression(torch.nn.Module):
@@ -297,8 +297,7 @@ def load_dataloader(stage):
 
     # Get model config
     config_finetune = load_config_finetune()
-    byol_ckpt_path = "byol.ckpt"
-    byol_model = BYOL.load_from_checkpoint(byol_ckpt_path)
+    byol_model = BYOL.load_from_checkpoint("byol.ckpt")
     config = byol_model.config
     config.update(config_finetune)
     config["finetune"]["dim"] = byol_model.encoder.dim
@@ -415,10 +414,12 @@ def run_post_evaluation(run_id):
     # Save accuracy data for the run to a JSON file
     save_accuracy(run_id, model, save_dir, "val")
     save_accuracy(run_id, model, save_dir, "test")
+
+    byol_model = BYOL.load_from_checkpoint("byol.ckpt")
+    config = byol_model.config
+    mu, sig = config["data"]["mu"], config["data"]["sig"]
     
     encoder = model.encoder
-    model_config = model.config
-    mu, sig = model_config["data"]["mu"], model_config["data"]["sig"]
 
     transform = T.Compose(
         [
@@ -453,46 +454,14 @@ def run_post_evaluation(run_id):
                 )
     mb_hybrid_umap = get_umap(encoder, mb_hybrid)
 
-    # Get umap embeddings for data with model classifications
-    model_fri = MBFRI_Pseudo(model,
-                        root=paths["mb"],
-                        train=True,
-                        transform=transform,
-                        download=False,
-                        aug_type="torchvision"
-                    )       
-    model_fri_umap = get_umap(encoder, model_fri)
-
-    model_frii = MBFRII_Pseudo(model,
-                    root=paths["mb"],
-                    train=True,
-                    transform=transform,
-                    download=False,
-                    aug_type="torchvision"
-                )
-    model_frii_umap = get_umap(encoder, model_frii)
-
-    model_hybrid = MBHybrid_Pseudo(model,
-                    root=paths["mb"],
-                    train=True,
-                    transform=transform,
-                    download=False,
-                    aug_type="torchvision"
-                )
-    model_hybrid_umap = get_umap(encoder, model_hybrid)
-
     # Put together data to plot
     mb_data = {"fri_umap": mb_fri_umap,
                "frii_umap": mb_frii_umap,
                "hybrid_umap": mb_hybrid_umap,
                "title": "MiraBest labels",
                }
-    model_data = {"fri_umap": model_fri_umap,
-                  "frii_umap": model_frii_umap,
-                  "hybrid_umap": model_hybrid_umap,
-                  "title": "Model classifications",
-                  }
-    plot_data = [mb_data, model_data]
+    
+    plot_data = [mb_data]
 
     # Plot embedding
     plot_embedding(save_dir + "/embedding.png", plot_data)
