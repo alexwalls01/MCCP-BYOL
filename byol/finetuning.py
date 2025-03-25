@@ -418,8 +418,7 @@ def run_post_evaluation(run_id):
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
     config = byol_model.config
     mu, sig = config["data"]["mu"], config["data"]["sig"]
-    
-    encoder = model.encoder
+    encoder = byol_model.encoder
 
     transform = T.Compose(
         [
