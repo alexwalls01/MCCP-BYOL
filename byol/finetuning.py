@@ -20,8 +20,8 @@ from paths import Path_Handler
 from config import load_config, update_config, load_config_finetune, load_config_evaluation
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
-from datasets import MBFRI, MBFRII, MBHybrid
-from plot_embedding import get_umap, plot_embedding
+from datasets import MiraBest_F, MBFRFull, RGZ108k
+from plot_embedding import Reducer, get_umap, plot_embedding
 
 class LogisticRegression(torch.nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -428,30 +428,47 @@ def run_post_evaluation(run_id):
         ]
     )
 
+    PCA_COMPONENTS = 200
+    UMAP_N_NEIGHBOURS = 75
+    UMAP_MIN_DIST = 0.01
+    METRIC = "cosine"
+
+    rgz = RGZ108k(
+        paths["rgz"],
+        train=True,
+        transform=transform,
+        download=True,
+        remove_duplicates=False,
+        cut_threshold=25,
+        mb_cut=True,
+    )
+
+    reducer = Reducer(encoder, PCA_COMPONENTS, UMAP_N_NEIGHBOURS, UMAP_MIN_DIST, METRIC)
+    reducer.fit(rgz)
+
     # Get umap embeddings for data with original MiraBest labels
-    mb_fri = MBFRI(root=paths["mb"],
-                   train=True,
-                   transform=transform,
-                   download=False,
-                   aug_type="torchvision"
-                )
-    mb_fri_umap = get_umap(encoder, mb_fri)
-    
-    mb_frii = MBFRII(root=paths["mb"],
-                   train=True,
-                   transform=transform,
-                   download=False,
-                   aug_type="torchvision"
-                )
-    mb_frii_umap = get_umap(encoder, mb_frii)
-    
-    mb_hybrid = MBHybrid(root=paths["mb"],
-                   train=True,
-                   transform=transform,
-                   download=False,
-                   aug_type="torchvision"
-                )
-    mb_hybrid_umap = get_umap(encoder, mb_hybrid)
+    mb = MBFRFull(root=paths["mb"],
+                  train=False,
+                  transform=transform,
+                  download=False,
+                  aug_type="torchvision"
+                  )
+    mb_fri = mb.subset_by_label(0)
+    mb_frii = mb.subset_by_label(1)
+    mb_hybrid = mb.subset_by_label(2)
+
+    # Get umap embeddings for data with model classifications
+    mb.assign_pseudo_labels(model)
+    predictions_fri = mb.subset_by_label(0)
+    predictions_frii = mb.subset_by_label(1)
+    predictions_hybrid = mb.subset_by_label(2)
+
+    mb_fri_umap = get_umap(reducer, encoder, mb_fri)
+    mb_frii_umap = get_umap(reducer, encoder, mb_frii)
+    mb_hybrid_umap = get_umap(reducer, encoder, mb_hybrid)
+    predictions_fri_umap = get_umap(reducer, encoder, predictions_fri)
+    predictions_frii_umap = get_umap(reducer, encoder, predictions_frii)
+    predictions_hybrid_umap = get_umap(reducer, encoder, predictions_hybrid)
 
     # Put together data to plot
     mb_data = {"fri_umap": mb_fri_umap,
@@ -459,8 +476,13 @@ def run_post_evaluation(run_id):
                "hybrid_umap": mb_hybrid_umap,
                "title": "MiraBest labels",
                }
+    predictions_data = {"fri_umap": predictions_fri_umap,
+                        "frii_umap": predictions_frii_umap,
+                        "hybrid_umap": predictions_hybrid_umap,
+                        "title": "Model classifications",
+                        }
     
-    plot_data = [mb_data]
+    plot_data = [mb_data, predictions_data]
 
     # Plot embedding
     plot_embedding(save_dir + "/embedding.png", plot_data)

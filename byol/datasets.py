@@ -247,13 +247,34 @@ class MiraBest_F(data.Dataset):
             tmp, self.target_transform.__repr__().replace("\n", "\n" + " " * len(tmp))
         )
         return fmt_str
+    
+    def assign_pseudo_labels(self, model, batch_size=64):
+        model.eval()
+        pseudo = []
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        loader = DataLoader(self, batch_size=batch_size, shuffle=False)
+        for batch in loader:
+            x, _, _ = batch  # image, original label (ignored), filename
+            x = x.to(device)
+            with torch.no_grad():
+                preds = model(x).argmax(dim=1).cpu().tolist()
+            pseudo.extend(preds)
+
+        assert len(pseudo) == len(self.targets), "Mismatch between dataset size and pseudo‑labels"
+        self.targets = pseudo
+    
+    def subset_by_label(self, label: int):
+        indices = [i for i, t in enumerate(self.targets) if t == label]
+        return Subset(self, indices)
 
 
 class MBFRFull(MiraBest_F):
 
     """
-    Child class to load all FRI (0) & FRII (1)
-    [100, 102, 104, 110, 112] and [200, 201, 210]
+    Child class to load all FRI (0), FRII (1) and Hybrid (2)
+    [100, 102, 104, 110, 112], [200, 201, 210] and [300, 310]
     """
 
     def __init__(self, *args, **kwargs):
@@ -261,10 +282,9 @@ class MBFRFull(MiraBest_F):
 
         fr1_list = [0, 1, 2, 3, 4]
         fr2_list = [5, 6, 7]
-        exclude_list = [8, 9]
+        hybrid_list = [8, 9]
+        exclude_list = []
 
-        if exclude_list == []:
-            return
         if self.train:
             targets = np.array(self.targets)
 
@@ -276,31 +296,39 @@ class MBFRFull(MiraBest_F):
             # Create a mask with True where we want to change the label to fri/frii
             fr1 = np.array(fr1_list).reshape(1, -1)
             fr2 = np.array(fr2_list).reshape(1, -1)
+            hybrid = np.array(hybrid_list).reshape(1, -1)
             fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
             fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
+            hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
 
-            # Set labels to fri/frii
+            # Set labels to fri/frii/hybrid
             targets[fr1_mask] = 0  # set all FRI to Class~0
             targets[fr2_mask] = 1  # set all FRII to Class~1
+            targets[hybrid_mask] =2 # set all Hybrids to Class~2
 
             # Remove excluded labels
             self.data = self.data[exclude_mask]
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+            self.filenames = np.array(self.filenames)[exclude_mask].tolist()
         else:
             targets = np.array(self.targets)
             exclude = np.array(exclude_list).reshape(1, -1)
             exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
             fr1 = np.array(fr1_list).reshape(1, -1)
             fr2 = np.array(fr2_list).reshape(1, -1)
+            hybrid = np.array(hybrid_list).reshape(1, -1)
             fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
             fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
+            hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
 
             targets[fr1_mask] = 0  # set all FRI to Class~0
             targets[fr2_mask] = 1  # set all FRII to Class~1
+            targets[hybrid_mask] = 2 # set all Hybrids to Class~2
             self.data = self.data[exclude_mask]
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+            self.filenames = np.array(self.filenames)[exclude_mask].tolist()
 
 
 class MBFRConfident(MiraBest_F):
@@ -407,136 +435,6 @@ class MBFRUncertain(MiraBest_F):
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
             self.filenames = np.array(self.filenames)[exclude_mask].tolist()
-
-class MBFRI(MiraBest_F):
-
-    """
-    Child class to load confident(0) and uncertain (1) FRI sources
-    [110, 112] and [210]
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(MBFRI, self).__init__(*args, **kwargs)
-
-        h1_list = [0, 1, 2]
-        h2_list = [3, 4]
-        exclude_list = [5, 6, 7, 8, 9]
-
-        if exclude_list == []:
-            return
-        if self.train:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(h1_list).reshape(1, -1)
-            fr2 = np.array(h1_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
-        else:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(h1_list).reshape(1, -1)
-            fr2 = np.array(h2_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
-
-class MBFRII(MiraBest_F):
-
-    """
-    Child class to load confident(0) and uncertain (1) FRII sources
-    [110, 112] and [210]
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(MBFRII, self).__init__(*args, **kwargs)
-
-        h1_list = [5, 6]
-        h2_list = [7]
-        exclude_list = [0, 1, 2, 3, 4, 8, 9]
-
-        if exclude_list == []:
-            return
-        if self.train:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(h1_list).reshape(1, -1)
-            fr2 = np.array(h1_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
-        else:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(h1_list).reshape(1, -1)
-            fr2 = np.array(h2_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
-
-
-class MBHybrid(MiraBest_F):
-
-    """
-    Child class to load confident(0) and uncertain (1) hybrid sources
-    [110, 112] and [210]
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(MBHybrid, self).__init__(*args, **kwargs)
-
-        h1_list = [8]
-        h2_list = [9]
-        exclude_list = [0, 1, 2, 3, 4, 5, 6, 7]
-
-        if exclude_list == []:
-            return
-        if self.train:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(h1_list).reshape(1, -1)
-            fr2 = np.array(h1_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
-        else:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(h1_list).reshape(1, -1)
-            fr2 = np.array(h2_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
 
 class MBRandom(MiraBest_F):
 

@@ -57,7 +57,7 @@ class Reducer:
         
     def embed_dataset(self, data, batch_size=400):
         train_loader = DataLoader(data, batch_size, shuffle=False)
-        device = next(encoder.parameters()).device
+        device = next(self.encoder.parameters()).device
         feature_bank = []
         target_bank = []
         for data in tqdm(train_loader):
@@ -68,7 +68,7 @@ class Reducer:
             else:
                 x, y = data
                 
-            x_enc = encoder(x.to(device))
+            x_enc = self.encoder(x.to(device))
 
             feature_bank.append(x_enc.squeeze().detach().cpu())
             #target_bank.append(y['size'].detach().cpu())
@@ -122,22 +122,12 @@ class Reducer:
         return x
 
 
-def get_umap(encoder, data):
+def get_umap(reducer, encoder, data):
 
     encoder.eval()
-
-    PCA_COMPONENTS = 200
-    UMAP_N_NEIGHBOURS = 75
-    UMAP_MIN_DIST = 0.01
-    METRIC = "cosine"
-
-    reducer = Reducer(encoder, PCA_COMPONENTS, UMAP_N_NEIGHBOURS, UMAP_MIN_DIST, METRIC, embedding='rgz_embedding_25.parquet')
-    reducer.fit(data)
-
     umap = reducer.transform(data)
 
     return umap
-
 
 def create_subplots(n):
 
