@@ -528,7 +528,7 @@ class RGZ108k(D.Dataset):
     base_folder = "rgz108k-batches-py"
 
     # Need to upload this, for now download is commented out
-    # url = "http://www.jb.man.ac.uk/research/ascaife/rgz20k-batches-python.tar.gz"
+    url = "http://www.jb.man.ac.uk/research/ascaife/rgz20k-batches-python.tar.gz"
     filename = "rgz108k-batches-python.tar.gz"
     tgz_md5 = "3fef587aa2aa3ece3b01b125977ae19d"
     train_list = [
@@ -613,8 +613,8 @@ class RGZ108k(D.Dataset):
         self.cut_threshold = cut_threshold
         self.mb_cut = mb_cut
 
-        # if download:
-        #     self.download()
+        if download:
+            self.download()
 
         if not self._check_integrity():
             raise RuntimeError(
