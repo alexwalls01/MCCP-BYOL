@@ -407,8 +407,9 @@ def run_post_evaluation(run_id):
     ckpt_folder = eval_config['ckpt_folder']
     wandb_project = finetune_config['finetune']['wandb_project']
     save_dir = eval_config['save_dir'] + "/" + wandb_project
+    os.makedirs(save_dir, exist_ok=True)
 
-    ckpt_path = ckpt_folder + run_id + "/" + wandb_project + "/" + run_id + "/" + "checkpoints/" + "epoch=299-step=3600.ckpt"
+    ckpt_path = os.path.join(ckpt_folder, run_id, wandb_project, run_id, "checkpoints", "epoch=299-step=3600.ckpt")
     model = load_checkpoint(ckpt_path)
 
     # Save accuracy data for the run to a JSON file
@@ -457,7 +458,7 @@ def run_post_evaluation(run_id):
     mb_frii = mb.subset_by_label(1)
     mb_hybrid = mb.subset_by_label(2)
 
-    # Get umap embeddings for data with model classifications
+    # Get umap embeddings for data with model
     mb.assign_pseudo_labels(model)
     predictions_fri = mb.subset_by_label(0)
     predictions_frii = mb.subset_by_label(1)
