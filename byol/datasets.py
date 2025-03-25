@@ -616,10 +616,10 @@ class RGZ108k(D.Dataset):
         if download:
             self.download()
 
-        #if not self._check_integrity():
-            #raise RuntimeError(
-                #"Dataset not found or corrupted." + " You can use download=True to download it"
-            #)
+        if not self._check_integrity():
+            raise RuntimeError(
+                "Dataset not found or corrupted." + " You can use download=True to download it"
+            )
 
         if self.train:
             downloaded_list = self.train_list
