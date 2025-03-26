@@ -1,2 +1,2 @@
 ckpt_folder: "/share/nas2_3/awalls/fr-mccp/byol/files/finetune/"
-save_dir: "/share/nas2_3/awalls/fr-mccp/byol/files/finetune_accuracy"
+save_dir: "/share/nas2_3/awalls/fr-mccp/byol/files/finetune_evaluation"
