@@ -420,7 +420,9 @@ def run_post_evaluation(run_id):
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
     config = byol_model.config
     mu, sig = config["data"]["mu"], config["data"]["sig"]
-    encoder = byol_model.encoder
+
+    encoder = model.encoder
+    encoder.eval()
 
     transform = T.Compose(
         [
@@ -456,7 +458,7 @@ def run_post_evaluation(run_id):
                   aug_type="torchvision"
                   )
     mb_train = MBFRFull(root=paths["mb"],
-                  train=False,
+                  train=True,
                   transform=transform,
                   download=False,
                   aug_type="torchvision"
