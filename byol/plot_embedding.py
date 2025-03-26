@@ -54,20 +54,22 @@ class Reducer:
         df.to_parquet(filename)
         
         return 
-        
-    def embed_dataset(self, dataset, batch_size=400):
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    
+    def embed_dataset(self, data, batch_size=400):
+        train_loader = DataLoader(data, batch_size, shuffle=False)
         device = next(self.encoder.parameters()).device
         feature_bank = []
+    
+        for data in tqdm(train_loader):
+            # Load data and move to correct device
+            x, _ = data
+            x_enc = self.encoder(x.to(device))
+            feature_bank.append(x_enc.squeeze().detach().cpu())
 
-        for imgs, _, _ in tqdm(loader):
-            imgs = imgs.to(device)
-            with torch.no_grad():
-                feats = self.encoder(imgs)
-            feature_bank.append(feats.cpu())
-
+        # Save full feature bank for validation epoch
         features = torch.cat(feature_bank)
         targets = np.ones(features.shape[0])
+        
         return features, targets
 
     def fit(self, data=None):
