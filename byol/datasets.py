@@ -268,7 +268,7 @@ class MiraBest_F(data.Dataset):
     def subset_by_label(self, label: int):
         indices = [i for i, t in enumerate(self.targets) if t == label]
         return Subset(self, indices)
-
+    
 
 class MBFRFull(MiraBest_F):
 

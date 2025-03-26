@@ -139,6 +139,7 @@ def create_subplots(n):
     offset = (cols - num_last) // 2   # Left offset to centre the last row
     for j in range(num_last):
         ax = fig.add_subplot(gs[rows - 1, offset + j])
+        ax.set_aspect('equal', adjustable='box')  # Make all subplots square
         axes.append(ax)
     
     return fig, axes
