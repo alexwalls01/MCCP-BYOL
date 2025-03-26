@@ -131,6 +131,7 @@ def create_subplots(n):
     for i in range(rows - 1):
         for j in range(cols):
             ax = fig.add_subplot(gs[i, j])
+            ax.set_aspect('equal', adjustable='box') # Make all subplots square
             axes.append(ax)
     
     # Centre the subplots in the last row
@@ -152,6 +153,7 @@ def plot_embedding(fig_path, plot_data):
         ax.scatter(plot_data[index]["fri_umap"][:, 0], plot_data[index]["fri_umap"][:, 1], label="FRI")
         ax.scatter(plot_data[index]["frii_umap"][:, 0], plot_data[index]["frii_umap"][:, 1], label="FRII")
         ax.scatter(plot_data[index]["hybrid_umap"][:, 0], plot_data[index]["hybrid_umap"][:, 1], label="Hybrid")
+        ax.legend()
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
 
