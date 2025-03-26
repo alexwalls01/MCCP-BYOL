@@ -62,7 +62,11 @@ class Reducer:
     
         for data in tqdm(train_loader):
             # Load data and move to correct device
-            x, _ = data
+            if len(data) == 2:
+                x, _ = data
+            elif len(data) == 3:
+                x, _, _ = data
+            else: x = data
             x_enc = self.encoder(x.to(device))
             feature_bank.append(x_enc.squeeze().detach().cpu())
 
