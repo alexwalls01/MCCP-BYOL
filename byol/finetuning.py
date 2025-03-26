@@ -475,6 +475,7 @@ def run_post_evaluation(run_id):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     mb_test.assign_pseudo_labels(model)
+    mb_train.assign_pseudo_labels(model)
 
     predictions_fri_test = mb_test.subset_by_label(0)
     predictions_frii_test = mb_test.subset_by_label(1)
