@@ -20,8 +20,8 @@ from paths import Path_Handler
 from config import load_config, update_config, load_config_finetune, load_config_evaluation
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
-from datasets import MiraBest_F, MBFRFull, RGZ108k
-from plot_embedding import Reducer, get_umap, plot_embedding
+from datasets import MBFRFull, RGZ108k
+from plot_embedding import Reducer, plot_embedding
 
 class LogisticRegression(torch.nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -466,12 +466,12 @@ def run_post_evaluation(run_id):
     predictions_frii = mb.subset_by_label(1)
     predictions_hybrid = mb.subset_by_label(2)
 
-    mb_fri_umap = get_umap(reducer, encoder, mb_fri)
-    mb_frii_umap = get_umap(reducer, encoder, mb_frii)
-    mb_hybrid_umap = get_umap(reducer, encoder, mb_hybrid)
-    predictions_fri_umap = get_umap(reducer, encoder, predictions_fri)
-    predictions_frii_umap = get_umap(reducer, encoder, predictions_frii)
-    predictions_hybrid_umap = get_umap(reducer, encoder, predictions_hybrid)
+    mb_fri_umap = reducer.transform(mb_fri)
+    mb_frii_umap = reducer.transform(mb_frii)
+    mb_hybrid_umap = reducer.transform(mb_hybrid)
+    predictions_fri_umap = reducer.transform(predictions_fri)
+    predictions_frii_umap = reducer.transform(predictions_frii)
+    predictions_hybrid_umap = reducer.transform(predictions_hybrid)
 
     # Put together data to plot
     mb_data = {"fri_umap": mb_fri_umap,

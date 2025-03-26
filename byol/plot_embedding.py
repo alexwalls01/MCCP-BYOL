@@ -55,29 +55,19 @@ class Reducer:
         
         return 
         
-    def embed_dataset(self, data, batch_size=400):
-        train_loader = DataLoader(data, batch_size, shuffle=False)
+    def embed_dataset(self, dataset, batch_size=400):
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         device = next(self.encoder.parameters()).device
         feature_bank = []
-        target_bank = []
-        for data in tqdm(train_loader):
-            #print(len(data), data[0].shape)
-            # Load data and move to correct device
-            if len(data)>2:
-                x = data
-            else:
-                x, y = data
-                
-            x_enc = self.encoder(x.to(device))
 
-            feature_bank.append(x_enc.squeeze().detach().cpu())
-            #target_bank.append(y['size'].detach().cpu())
-            
-        # Save full feature bank for validation epoch
+        for imgs, _, _ in tqdm(loader):
+            imgs = imgs.to(device)
+            with torch.no_grad():
+                feats = self.encoder(imgs)
+            feature_bank.append(feats.cpu())
+
         features = torch.cat(feature_bank)
-        #targets = torch.cat(target_bank)
         targets = np.ones(features.shape[0])
-        
         return features, targets
 
     def fit(self, data=None):
@@ -120,14 +110,6 @@ class Reducer:
         x, _ = self.embed_dataset(data)
         x = self.pca.transform(x)
         return x
-
-
-def get_umap(reducer, encoder, data):
-
-    encoder.eval()
-    umap = reducer.transform(data)
-
-    return umap
 
 def create_subplots(n):
 
