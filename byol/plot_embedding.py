@@ -123,7 +123,7 @@ def create_subplots(n):
     cols = int(np.ceil(np.sqrt(n)))
     rows = int(np.ceil(n / cols))
     
-    fig = pl.figure(constrained_layout=True, sharey=True)
+    fig = pl.figure(constrained_layout=True)
     gs = gridspec.GridSpec(rows, cols, figure=fig)
     
     axes = []
@@ -155,6 +155,9 @@ def plot_embedding(fig_path, plot_data):
     xmax = np.max(plot_data[0]["umap"][:, 0]) + 1
     ymin = np.min(plot_data[0]["umap"][:, 1]) - 1
     ymax = np.max(plot_data[0]["umap"][:, 1]) + 1
+
+    for ax in axes[1:]:
+        ax.sharey(axes[0])
 
     for index, ax in enumerate(axes):
         fr_classes = []
