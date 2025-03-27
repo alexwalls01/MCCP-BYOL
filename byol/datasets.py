@@ -250,17 +250,21 @@ class MiraBest_F(data.Dataset):
         return fmt_str
     
     def with_pseudo_labels(self, model, batch_size=64):
-        model.eval()
-        pseudo = copy(self)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        loader = DataLoader(self, batch_size=batch_size, shuffle=False)
+        model = model.to(device)
+        model.eval()
+
         preds = []
+        loader = DataLoader(self, batch_size=batch_size, shuffle=False)
         for imgs, _, _ in loader:
             imgs = imgs.to(device)
             with torch.no_grad():
                 preds.extend(model(imgs).argmax(dim=1).cpu().tolist())
-        pseudo.targets = preds
-        return pseudo
+
+        assert len(preds) == len(self.targets)
+        new = copy(self)
+        new.targets = preds
+        return new
     
     def subset_by_label(self, label: int):
         indices = [i for i, t in enumerate(self.targets) if t == label]
