@@ -487,11 +487,11 @@ def run_post_evaluation(run_id):
 
     # Put together data to plot
     plot_data_orig = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
-                      "labels": np.vstack((mb_train_labels, mb_test_labels)),
+                      "labels": np.concatenate((mb_train_labels, mb_test_labels), axis=0),
                       "title": "MiraBest labels",
                       }
     plot_data_preds = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
-                       "labels": np.vstack((mb_train_preds, mb_test_preds)),
+                       "labels": np.concatenate((mb_train_preds, mb_test_preds), axis=0),
                        "title": "Model predictions",
                        }
     plot_data_orig_test = {"umap": mb_test_umap,
