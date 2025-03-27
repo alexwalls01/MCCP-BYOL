@@ -524,7 +524,7 @@ def run_post_evaluation(run_id):
                              "title": "Model classifications",
                              }
     mb_data = {"fri_umap": np.vstack((mb_fri_umap_test, mb_fri_umap_train)),
-               "frii_umap": np.vstack((mv_frii_umap_test, mb_frii_umap_train)),
+               "frii_umap": np.vstack((mb_frii_umap_test, mb_frii_umap_train)),
                "hybrid_umap": np.vstack((mb_hybrid_umap_test, mb_hybrid_umap_train)),
                "title": "MiraBest labels",
                }
