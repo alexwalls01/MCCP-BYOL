@@ -179,8 +179,8 @@ def plot_embedding(fig_path, plot_data):
         handles = [pl.plot([],color=sc.get_cmap()(sc.norm(c)),ls="", marker="o")[0] for c,l in clset]
         labels = [l for c,l in clset]
         ax.legend(handles, labels)
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(ymin, ymax)
+        #ax.set_xlim(xmin, xmax)
+        #ax.set_ylim(ymin, ymax)
         ax.set_xlabel("UMAP x")
         ax.set_ylabel("UMAP y")
         #ax.get_xaxis().set_visible(False)
