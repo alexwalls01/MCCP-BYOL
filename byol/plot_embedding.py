@@ -150,7 +150,11 @@ def create_subplots(n):
 def plot_embedding(fig_path, plot_data):
 
     fig, axes = create_subplots(len(plot_data))
-    marker_size = 0.1
+    marker_size = 1
+    xmin = np.min(plot_data[0]["umap"][:, 0]) - 1
+    xmax = np.max(plot_data[0]["umap"][:, 0]) + 1
+    ymin = np.min(plot_data[0]["umap"][:, 1]) - 1
+    ymax = np.max(plot_data[0]["umap"][:, 1]) + 1
 
     for index, ax in enumerate(axes):
         fr_classes = []
@@ -164,10 +168,12 @@ def plot_embedding(fig_path, plot_data):
 
         clset = set(zip(plot_data[index]["labels"], fr_classes))
         ax.set_title(plot_data[index]["title"])
-        sc = ax.scatter(plot_data[index]["umap"][:, 0], plot_data[index]["umap"][:, 1], c=plot_data[index]["labels"], cmap="tab10", s=marker_size)
+        sc = ax.scatter(plot_data[index]["umap"][:, 0], plot_data[index]["umap"][:, 1], c=plot_data[index]["labels"], cmap="tab10", alpha=0.75, s=marker_size)
         handles = [pl.plot([],color=sc.get_cmap()(sc.norm(c)),ls="", marker="o")[0] for c,l in clset]
         labels = [l for c,l in clset]
         ax.legend(handles, labels)
+        ax.set_xlim(left=xmin, right=xmax)
+        ax.set_ylim(bottom=ymin, top=ymax)
         ax.set_xlabel("UMAP x")
         ax.set_ylabel("UMAP y")
         #ax.get_xaxis().set_visible(False)
