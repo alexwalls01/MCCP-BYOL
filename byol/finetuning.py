@@ -492,7 +492,8 @@ def run_post_evaluation(run_id):
                       }
     plot_data_preds = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                        "labels": np.vstack((mb_train_preds, mb_test_preds)),
-                       "title": "Model predictions"}
+                       "title": "Model predictions",
+                       }
     plot_data_orig_test = {"umap": mb_test_umap,
                            "labels": mb_test_labels,
                            "title": "MiraBest labels",

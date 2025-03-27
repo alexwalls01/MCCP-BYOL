@@ -161,7 +161,7 @@ def plot_embedding(fig_path, plot_data):
                 fr_classes.append("FRII")
             else:
                 fr_classes.append("Hybrid")
-                
+
         clset = set(zip(plot_data[index]["labels"], fr_classes))
         ax.set_title(plot_data[index]["title"])
         sc = ax.scatter(plot_data[index]["umap"][:, 0], plot_data[index]["umap"][:, 1], c=plot_data[index]["labels"], cmap="tab10", s=marker_size)
@@ -170,7 +170,6 @@ def plot_embedding(fig_path, plot_data):
         ax.legend(handles, labels)
         ax.set_xlabel("UMAP x")
         ax.set_ylabel("UMAP y")
-        ax.legend()
         #ax.get_xaxis().set_visible(False)
         #ax.get_yaxis().set_visible(False)
 
