@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from sklearn.decomposition import PCA
 from umap import UMAP
 from matplotlib import gridspec
+from matplotlib import colors
 
 class Reducer:
     
@@ -150,13 +151,16 @@ def create_subplots(n):
 def plot_embedding(fig_path, plot_data):
 
     fig, axes = create_subplots(len(plot_data))
-    marker_size = 1.5
+    marker_size = 2
     xmin = np.min(plot_data[0]["umap"][:, 0]) - 1
     xmax = np.max(plot_data[0]["umap"][:, 0]) + 1
     ymin = np.min(plot_data[0]["umap"][:, 1]) - 1
     ymax = np.max(plot_data[0]["umap"][:, 1]) + 1
 
+    cmap = colors.LinearSegmentedColormap.from_list("", ["blue","orange","green"])
+
     for ax in axes[1:]:
+        ax.sharex(axes[0])
         ax.sharey(axes[0])
 
     for index, ax in enumerate(axes):
@@ -171,7 +175,7 @@ def plot_embedding(fig_path, plot_data):
 
         clset = set(zip(plot_data[index]["labels"], fr_classes))
         ax.set_title(plot_data[index]["title"])
-        sc = ax.scatter(plot_data[index]["umap"][:, 0], plot_data[index]["umap"][:, 1], c=plot_data[index]["labels"], alpha=0.5, s=marker_size)
+        sc = ax.scatter(plot_data[index]["umap"][:, 0], plot_data[index]["umap"][:, 1], c=plot_data[index]["labels"], cmap=cmap, alpha=0.5, s=marker_size)
         handles = [pl.plot([],color=sc.get_cmap()(sc.norm(c)),ls="", marker="o")[0] for c,l in clset]
         labels = [l for c,l in clset]
         ax.legend(handles, labels)
