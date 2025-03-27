@@ -152,12 +152,12 @@ def plot_embedding(fig_path, plot_data):
 
     fig, axes = create_subplots(len(plot_data))
     marker_size = 2
-    xmin = np.min(plot_data[0]["umap"][:, 0]) - 1
-    xmax = np.max(plot_data[0]["umap"][:, 0]) + 1
-    ymin = np.min(plot_data[0]["umap"][:, 1]) - 1
-    ymax = np.max(plot_data[0]["umap"][:, 1]) + 1
+    xmin = np.min(plot_data[0]["umap"][:, 0]) - 0.5
+    xmax = np.max(plot_data[0]["umap"][:, 0]) + 0.5
+    ymin = np.min(plot_data[0]["umap"][:, 1]) - 0.5
+    ymax = np.max(plot_data[0]["umap"][:, 1]) + 0.5
 
-    cmap = colors.LinearSegmentedColormap.from_list("", ["blue","orange","green"])
+    cmap = colors.LinearSegmentedColormap.from_list("", ["tab:blue","tab:orange","tab:green"])
 
     #for ax in axes[1:]:
         #ax.sharex(axes[0])
