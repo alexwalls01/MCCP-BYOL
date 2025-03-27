@@ -256,7 +256,11 @@ class MiraBest_F(data.Dataset):
 
         preds = []
         loader = DataLoader(self, batch_size=batch_size, shuffle=False)
-        for imgs, _, _ in loader:
+        for batch in loader:
+            if len(batch)==2:
+                imgs, _ = batch
+            else:
+                imgs, _, _ = batch
             imgs = imgs.to(device)
             with torch.no_grad():
                 preds.extend(model(imgs).argmax(dim=1).cpu().tolist())
