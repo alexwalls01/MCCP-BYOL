@@ -132,8 +132,8 @@ def create_subplots(n):
     for i in range(rows - 1):
         for j in range(cols):
             ax = fig.add_subplot(gs[i, j])
+            ax.set_aspect('equal', adjustable='box')
             ax.set_box_aspect(1) # Make all subplots square
-            #ax.set_aspect('equal', adjustable='box')
             axes.append(ax)
     
     # Centre the subplots in the last row
@@ -141,8 +141,8 @@ def create_subplots(n):
     offset = (cols - num_last) // 2   # Left offset to centre the last row
     for j in range(num_last):
         ax = fig.add_subplot(gs[rows - 1, offset + j])
+        ax.set_aspect('equal', adjustable='box')
         ax.set_box_aspect(1) # Make all subplots square
-        #ax.set_aspect('equal', adjustable='box')
         axes.append(ax)
     
     return fig, axes
@@ -159,9 +159,9 @@ def plot_embedding(fig_path, plot_data):
 
     cmap = colors.LinearSegmentedColormap.from_list("", ["blue","orange","green"])
 
-    for ax in axes[1:]:
-        ax.sharex(axes[0])
-        ax.sharey(axes[0])
+    #for ax in axes[1:]:
+        #ax.sharex(axes[0])
+        #ax.sharey(axes[0])
 
     for index, ax in enumerate(axes):
         fr_classes = []

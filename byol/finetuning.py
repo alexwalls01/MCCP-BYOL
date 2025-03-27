@@ -433,7 +433,7 @@ def run_post_evaluation(run_id):
         ]
     )
 
-    reducer_path = os.path.join(save_dir, "reducer.pkl")
+    reducer_path = os.path.join(save_dir, run_id + "_reducer.pkl")
     if os.path.isfile(reducer_path):
         reducer = pickle.load((open(reducer_path, 'rb')))
     else:
