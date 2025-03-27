@@ -433,12 +433,19 @@ def run_post_evaluation(run_id):
         ]
     )
 
-    PCA_COMPONENTS = 200
-    UMAP_N_NEIGHBOURS = 75
-    UMAP_MIN_DIST = 0.01
-    METRIC = "cosine"
+    reducer_path = os.path.join(save_dir, "/reducer.pkl")
+    if os.path.isfile(reducer_path):
+        reducer = pickle.load((open(reducer_path, 'rb')))
+    else:
 
-    rgz = RGZ108k(
+        PCA_COMPONENTS = 200
+        UMAP_N_NEIGHBOURS = 75
+        UMAP_MIN_DIST = 0.01
+        METRIC = "cosine"
+
+        reducer = Reducer(encoder, PCA_COMPONENTS, UMAP_N_NEIGHBOURS, UMAP_MIN_DIST, METRIC)
+
+        rgz = RGZ108k(
         paths["rgz"],
         train=True,
         transform=transform,
@@ -446,12 +453,10 @@ def run_post_evaluation(run_id):
         remove_duplicates=False,
         cut_threshold=25,
         mb_cut=True,
-    )
+        )
 
-    reducer = Reducer(encoder, PCA_COMPONENTS, UMAP_N_NEIGHBOURS, UMAP_MIN_DIST, METRIC)
-    reducer.fit(rgz)
-    reducer_path = os.path.join(save_dir, "/", run_id, "_reducer.pkl")
-    pickle.dump(reducer, open(reducer_path, 'wb'))
+        reducer.fit(rgz)
+        pickle.dump(reducer, open(reducer_path, 'wb'))
 
     # Get umap embeddings for data with original MiraBest labels
     mb_test = MBFRFull(root=paths["mb"],
