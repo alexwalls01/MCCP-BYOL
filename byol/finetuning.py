@@ -10,6 +10,7 @@ import torch.nn as nn
 import os
 import json
 import numpy as np
+import pickle
 
 from pathlib import Path
 from einops import rearrange
@@ -449,6 +450,8 @@ def run_post_evaluation(run_id):
 
     reducer = Reducer(encoder, PCA_COMPONENTS, UMAP_N_NEIGHBOURS, UMAP_MIN_DIST, METRIC)
     reducer.fit(rgz)
+    reducer_path = os.path.join(save_dir, "/", run_id, "_reducer.pkl")
+    pickle.dump(reducer, open(reducer_path, 'wb'))
 
     # Get umap embeddings for data with original MiraBest labels
     mb_test = MBFRFull(root=paths["mb"],

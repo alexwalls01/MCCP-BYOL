@@ -131,7 +131,8 @@ def create_subplots(n):
     for i in range(rows - 1):
         for j in range(cols):
             ax = fig.add_subplot(gs[i, j])
-            ax.set_aspect('equal', adjustable='box') # Make all subplots square
+            ax.set_box_aspect(1) # Make all subplots square
+            #ax.set_aspect('equal', adjustable='box')
             axes.append(ax)
     
     # Centre the subplots in the last row
@@ -139,7 +140,8 @@ def create_subplots(n):
     offset = (cols - num_last) // 2   # Left offset to centre the last row
     for j in range(num_last):
         ax = fig.add_subplot(gs[rows - 1, offset + j])
-        ax.set_aspect('equal', adjustable='box')  # Make all subplots square
+        ax.set_box_aspect(1) # Make all subplots square
+        #ax.set_aspect('equal', adjustable='box')
         axes.append(ax)
     
     return fig, axes
@@ -151,12 +153,14 @@ def plot_embedding(fig_path, plot_data):
 
     for index, ax in enumerate(axes):
         ax.set_title(plot_data[index]["title"])
-        ax.scatter(plot_data[index]["fri_umap"][:, 0], plot_data[index]["fri_umap"][:, 1], label="FRI")
-        ax.scatter(plot_data[index]["frii_umap"][:, 0], plot_data[index]["frii_umap"][:, 1], label="FRII")
-        ax.scatter(plot_data[index]["hybrid_umap"][:, 0], plot_data[index]["hybrid_umap"][:, 1], label="Hybrid")
+        ax.scatter(plot_data[index]["fri_umap"][:, 0], plot_data[index]["fri_umap"][:, 1], s=0.1, label="FRI")
+        ax.scatter(plot_data[index]["frii_umap"][:, 0], plot_data[index]["frii_umap"][:, 1], s=0.1, label="FRII")
+        ax.scatter(plot_data[index]["hybrid_umap"][:, 0], plot_data[index]["hybrid_umap"][:, 1], s=0.1, label="Hybrid")
+        ax.set_xlabel("UMAP x")
+        ax.set_ylabel("UMAP y")
         ax.legend()
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
+        #ax.get_xaxis().set_visible(False)
+        #ax.get_yaxis().set_visible(False)
 
     pl.gca().set_aspect("equal", "datalim")
 
