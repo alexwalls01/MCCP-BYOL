@@ -433,7 +433,7 @@ def run_post_evaluation(run_id):
         ]
     )
 
-    reducer_path = os.path.join(save_dir, "/reducer.pkl")
+    reducer_path = os.path.join(save_dir, "reducer.pkl")
     if os.path.isfile(reducer_path):
         reducer = pickle.load((open(reducer_path, 'rb')))
     else:
@@ -471,80 +471,40 @@ def run_post_evaluation(run_id):
                   download=False,
                   aug_type="torchvision"
                   )
-    mb_fri_test = mb_test.subset_by_label(0)
-    mb_frii_test = mb_test.subset_by_label(1)
-    mb_hybrid_test = mb_test.subset_by_label(2)
-
-    mb_fri_train = mb_train.subset_by_label(0)
-    mb_frii_train = mb_train.subset_by_label(1)
-    mb_hybrid_train = mb_train.subset_by_label(2)
+    mb_test_pseudo = mb_test.with_pseudo_labels(model)
+    mb_train_pseudo = mb_train.with_pseudo_labels(model)
+    
+    mb_test_labels = np.array(mb_test.targets)
+    mb_test_preds = np.array(mb_test_pseudo.targets)
+    mb_train_labels = np.array(mb_train.targets)
+    mb_train_preds = np.array(mb_train_pseudo.targets)
 
     # Get umap embeddings for data with model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    mb_test.assign_pseudo_labels(model)
-    mb_train.assign_pseudo_labels(model)
-
-    predictions_fri_test = mb_test.subset_by_label(0)
-    predictions_frii_test = mb_test.subset_by_label(1)
-    predictions_hybrid_test = mb_test.subset_by_label(2)
-
-    predictions_fri_train = mb_train.subset_by_label(0)
-    predictions_frii_train = mb_train.subset_by_label(1)
-    predictions_hybrid_train = mb_train.subset_by_label(2)
-
-    mb_fri_umap_test = reducer.transform(mb_fri_test)
-    mb_frii_umap_test = reducer.transform(mb_frii_test)
-    mb_hybrid_umap_test = reducer.transform(mb_hybrid_test)
-    predictions_fri_umap_test = reducer.transform(predictions_fri_test)
-    predictions_frii_umap_test = reducer.transform(predictions_frii_test)
-    predictions_hybrid_umap_test = reducer.transform(predictions_hybrid_test)
-
-    mb_fri_umap_train = reducer.transform(mb_fri_train)
-    mb_frii_umap_train = reducer.transform(mb_frii_train)
-    mb_hybrid_umap_train = reducer.transform(mb_hybrid_train)
-    predictions_fri_umap_train = reducer.transform(predictions_fri_train)
-    predictions_frii_umap_train = reducer.transform(predictions_frii_train)
-    predictions_hybrid_umap_train = reducer.transform(predictions_hybrid_train)
+    mb_test_umap = reducer.transform(mb_test)
+    mb_train_umap = reducer.transform(mb_train)
 
     # Put together data to plot
-    mb_data_train = {"fri_umap": mb_fri_umap_train,
-               "frii_umap": mb_frii_umap_train,
-               "hybrid_umap": mb_hybrid_umap_train,
-               "title": "MiraBest labels",
-               }
-    predictions_data_train = {"fri_umap": predictions_fri_umap_train,
-                        "frii_umap": predictions_frii_umap_train,
-                        "hybrid_umap": predictions_hybrid_umap_train,
-                        "title": "Model classifications",
-                        }
-    mb_data_test = {"fri_umap": mb_fri_umap_test,
-                    "frii_umap": mb_frii_umap_test,
-                    "hybrid_umap": mb_hybrid_umap_test,
-                    "title": "MiraBest labels",
-                    }
-    predictions_data_test = {"fri_umap": predictions_fri_umap_test,
-                             "frii_umap": predictions_frii_umap_test,
-                             "hybrid_umap": predictions_hybrid_umap_test,
-                             "title": "Model classifications",
-                             }
-    mb_data = {"fri_umap": np.vstack((mb_fri_umap_test, mb_fri_umap_train)),
-               "frii_umap": np.vstack((mb_frii_umap_test, mb_frii_umap_train)),
-               "hybrid_umap": np.vstack((mb_hybrid_umap_test, mb_hybrid_umap_train)),
-               "title": "MiraBest labels",
-               }
-    predictions_data = {"fri_umap": np.vstack((predictions_fri_umap_test, predictions_fri_umap_train)),
-                        "frii_umap": np.vstack((predictions_frii_umap_test, predictions_frii_umap_train)),
-                        "hybrid_umap": np.vstack((predictions_hybrid_umap_test, predictions_hybrid_umap_train)),
-                        "title": "Model classifications",
-                        }
-    
-    plot_data_train = [mb_data_train, predictions_data_train]
-    plot_data_test = [mb_data_test, predictions_data_test]
-    plot_data = [mb_data, predictions_data]
+    plot_data_orig = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
+                      "labels": np.vstack((mb_train_labels, mb_test_labels)),
+                      "title": "MiraBest labels",
+                      }
+    plot_data_preds = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
+                       "labels": np.vstack((mb_train_preds, mb_test_preds)),
+                       "title": "Model predictions"}
+    plot_data_orig_test = {"umap": mb_test_umap,
+                           "labels": mb_test_labels,
+                           "title": "MiraBest labels",
+                           }
+    plot_data_preds_test = {"umap": mb_test_umap,
+                            "labels": mb_test_preds,
+                            "title": "Model predictions",
+                            }
+    plot_data = [plot_data_orig, plot_data_preds]
+    plot_data_test = [plot_data_orig_test, plot_data_preds_test]
 
     # Plot embedding
-    plot_embedding(save_dir + "/" + run_id + "_embedding_train.png", plot_data_train)
     plot_embedding(save_dir + "/" + run_id + "_embedding_test.png", plot_data_test)
     plot_embedding(save_dir + "/" + run_id + "_embedding.png", plot_data)
 

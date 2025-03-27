@@ -150,12 +150,24 @@ def create_subplots(n):
 def plot_embedding(fig_path, plot_data):
 
     fig, axes = create_subplots(len(plot_data))
+    marker_size = 0.1
 
     for index, ax in enumerate(axes):
+        fr_classes = []
+        for label in plot_data[index]["labels"]:
+            if label == 0:
+                fr_classes.append("FRI")
+            elif label == 1:
+                fr_classes.append("FRII")
+            else:
+                fr_classes.append("Hybrid")
+                
+        clset = set(zip(plot_data[index]["labels"], fr_classes))
         ax.set_title(plot_data[index]["title"])
-        ax.scatter(plot_data[index]["fri_umap"][:, 0], plot_data[index]["fri_umap"][:, 1], s=0.1, label="FRI")
-        ax.scatter(plot_data[index]["frii_umap"][:, 0], plot_data[index]["frii_umap"][:, 1], s=0.1, label="FRII")
-        ax.scatter(plot_data[index]["hybrid_umap"][:, 0], plot_data[index]["hybrid_umap"][:, 1], s=0.1, label="Hybrid")
+        sc = ax.scatter(plot_data[index]["umap"][:, 0], plot_data[index]["umap"][:, 1], c=plot_data[index]["labels"], cmap="tab10", s=marker_size)
+        handles = [pl.plot([],color=sc.get_cmap()(sc.norm(c)),ls="", marker="o")[0] for c,l in clset]
+        labels = [l for c,l in clset]
+        ax.legend(handles, labels)
         ax.set_xlabel("UMAP x")
         ax.set_ylabel("UMAP y")
         ax.legend()

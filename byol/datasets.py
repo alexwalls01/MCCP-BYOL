@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Tuple, Type, Optional
 from torch.utils.data import Subset
 from einops import rearrange
 from torchvision.transforms.functional import center_crop, resize
+from copy import copy
 
 from byol.utilities import rgz_cut
 from byol.paths import Path_Handler
@@ -248,22 +249,18 @@ class MiraBest_F(data.Dataset):
         )
         return fmt_str
     
-    def assign_pseudo_labels(self, model, batch_size=64):
+    def with_pseudo_labels(self, model, batch_size=64):
         model.eval()
-        pseudo = []
-
+        pseudo = copy(self)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         loader = DataLoader(self, batch_size=batch_size, shuffle=False)
-        for batch in loader:
-            x, _, _ = batch  # image, original label (ignored), filename
-            x = x.to(device)
+        preds = []
+        for imgs, _, _ in loader:
+            imgs = imgs.to(device)
             with torch.no_grad():
-                preds = model(x).argmax(dim=1).cpu().tolist()
-            pseudo.extend(preds)
-
-        assert len(pseudo) == len(self.targets), "Mismatch between dataset size and pseudo‑labels"
-        self.targets = pseudo
+                preds.extend(model(imgs).argmax(dim=1).cpu().tolist())
+        pseudo.targets = preds
+        return pseudo
     
     def subset_by_label(self, label: int):
         indices = [i for i, t in enumerate(self.targets) if t == label]
