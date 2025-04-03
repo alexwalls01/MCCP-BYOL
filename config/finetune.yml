@@ -1,7 +1,7 @@
 finetune:
   # resnet sizes 
   run_id: 1 # resnet-18
-  wandb_project: "BYOL_finetune_3classes" 
+  wandb_project: "BYOL_finetune_MCCP" 
   seed: 69
 
   preset: 'optimal'
