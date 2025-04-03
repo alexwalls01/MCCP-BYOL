@@ -28,3 +28,7 @@ trainer:
   precision: 32 # [16, 32, 'bf16'], often overriden
   deterministic: True
   accelerator: 'gpu'
+
+conformal_prediction:
+  label_dist: 'label_dist.npy'
+  RA_dec: 'RA_dec.npy'

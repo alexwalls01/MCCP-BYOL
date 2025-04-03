@@ -395,6 +395,8 @@ def main():
             prefetch_factor=config["dataloading"]["prefetch_factor"],
             pin_memory=config["dataloading"]["pin_memory"],
             seed=config["finetune"]["seed"],
+            label_dist=config["conformal_prediction"]["label_dist"]
+            RA_dec=config["conformal_prediction"]["RA_dec"]
         )
         run_finetuning(config, model.encoder, finetune_datamodule, logger)
         logger.experiment.finish()

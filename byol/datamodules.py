@@ -331,6 +331,8 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
         prefetch_factor=20,
         pin_memory=False,
         seed=69,
+        label_dist=None,
+        RA_dec=None,
     ):
         super().__init__(
             path,
@@ -367,6 +369,9 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
             ]
         )
 
+        self.label_dist = label_dist
+        self.RA_dec = RA_dec
+
     def prepare_data(self):
         pass
 
@@ -402,20 +407,20 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 ),
                 idx_val,
             )
-
+        # Train with annotator-derived labels
         else:
             self.data["train"] = MBFRConfident(
                 self.path,
                 aug_type="torchvision",
                 train=True,
                 transform=self.train_transform,
-            )
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
             self.data["val"] = MBFRConfident(
                 self.path,
                 aug_type="torchvision",
                 train=True,
                 transform=self.test_transform,
-            )
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
 
         self.data["test"] = OrderedDict(
             {
@@ -425,14 +430,14 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                     train=False,
                     test_size=None,
                     transform=self.test_transform,
-                ),
+                ).with_annotator_labels(self.label_dist, self.RA_dec),
                 "MB_unc_test": MBFRUncertain(
                     self.path,
                     aug_type="torchvision",
                     train=False,
                     test_size=None,
                     transform=self.test_transform,
-                ),
+                ).with_annotator_labels(self.label_dist, self.RA_dec),
             },
         )
 
