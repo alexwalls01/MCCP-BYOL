@@ -23,7 +23,6 @@ from config import load_config, update_config, load_config_finetune, load_config
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
 from datasets import MBFRFull, RGZ108k
-from plot_embedding import Reducer, plot_embedding
 
 class LogisticRegression(torch.nn.Module):
     def __init__(self, input_dim, output_dim):
