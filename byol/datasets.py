@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Tuple, Type, Optional
 from torch.utils.data import Subset
 from einops import rearrange
 from torchvision.transforms.functional import center_crop, resize
-from copy import copy
+from copy import deepcopy
 
 from byol.utilities import rgz_cut
 from byol.paths import Path_Handler
@@ -59,11 +59,14 @@ class MiraBest_F(data.Dataset):
         ["data_batch_4", "a1209aceedd8806c88eab27ce45ee2c4"],
         ["data_batch_5", "1619cd7c54f5d71fcf4cfefea829728e"],
         ["data_batch_6", "636c2b84649286e19bcb0684fc9fbb01"],
-        ["data_batch_7", "bc67bc37080dc4df880ffe9720d680a8"],
     ]
 
     test_list = [
         ["test_batch", "ac7ea0d5ee8c7ab49f257c9964796953"],
+    ]
+
+    calibration_list = [
+        ["data_batch_7", "bc67bc37080dc4df880ffe9720d680a8"],
     ]
     meta = {
         "filename": "batches.meta",
@@ -75,6 +78,7 @@ class MiraBest_F(data.Dataset):
     self,
     root,
     train: Optional[bool] = True,
+    calibration: Optional[bool] = False,
     transform=None,
     target_transform=None,
     download=False,
@@ -86,6 +90,7 @@ class MiraBest_F(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
+        self.calibration = calibration
         self.aug_type = aug_type
 
         if download:
@@ -100,8 +105,10 @@ class MiraBest_F(data.Dataset):
             downloaded_list = self.train_list
         elif not self.train and test_size is None:
             downloaded_list = self.test_list
+        elif not self.train and self.calibration:
+            downloaded_list = self.calibration
         else:
-            downloaded_list = self.train_list + self.test_list
+            downloaded_list = self.train_list + self.test_list + self.calibration_list
 
         self.data = []
         self.targets = []
@@ -124,6 +131,9 @@ class MiraBest_F(data.Dataset):
                 else:
                     self.targets.extend(entry["fine_labels"])
                     self.filenames.extend(entry["filenames"])
+        
+        # Set label distribution to have same length as dataset
+        self.label_dist = np.zeros((len(self.targets), 3))
 
         # Extract metadata
         self.las = [float(filename[-11:-4]) for filename in self.filenames]
@@ -266,10 +276,25 @@ class MiraBest_F(data.Dataset):
                 preds.extend(model(imgs).argmax(dim=1).cpu().tolist())
 
         assert len(preds) == len(self.targets)
-        new = copy(self)
+        new = deepcopy(self)
         new.targets = preds
         return new
     
+    def with_annotator_labels(self, label_dist, RA_dec):
+        new = deepcopy(self)
+        for i, pos in enumerate(RA_dec):
+            for j, filename in enumerate(new.filenames):
+                # Find corresponding index
+                if pos in filename:
+                    # If majority vote is tied, use MiraBest label
+                    if np.sum(label_dist[i] == np.max(label_dist[i])) > 1:
+                        new.label_dist[j] = label_dist[i]
+                    # Otherwise, use majority vote label
+                    else:
+                        new.label_dist[j] = label_dist[i]
+                        new.targets[j] = np.argmax(label_dist[i])
+        return new
+
     def subset_by_label(self, label: int):
         indices = [i for i, t in enumerate(self.targets) if t == label]
         return Subset(self, indices)
@@ -316,6 +341,7 @@ class MBFRFull(MiraBest_F):
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
             self.filenames = np.array(self.filenames)[exclude_mask].tolist()
+            self.label_dist = np.array(self.label_dist)[exclude_mask].tolist()
         else:
             targets = np.array(self.targets)
             exclude = np.array(exclude_list).reshape(1, -1)
@@ -334,7 +360,8 @@ class MBFRFull(MiraBest_F):
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
             self.filenames = np.array(self.filenames)[exclude_mask].tolist()
-
+            self.label_dist = np.array(self.label_dist)[exclude_mask].tolist()
+          
 
 class MBFRConfident(MiraBest_F):
 
@@ -370,6 +397,7 @@ class MBFRConfident(MiraBest_F):
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
             self.filenames = np.array(self.filenames)[exclude_mask].tolist()
+            self.label_dist = np.array(self.label_dist)[exclude_mask].tolist()
         else:
             targets = np.array(self.targets)
             exclude = np.array(exclude_list).reshape(1, -1)
@@ -387,6 +415,7 @@ class MBFRConfident(MiraBest_F):
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
             self.filenames = np.array(self.filenames)[exclude_mask].tolist()
+            self.label_dist = np.array(self.label_dist)[exclude_mask].tolist()
 
 
 class MBFRUncertain(MiraBest_F):
@@ -423,6 +452,7 @@ class MBFRUncertain(MiraBest_F):
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
             self.filenames = np.array(self.filenames)[exclude_mask].tolist()
+            self.label_dist = np.array(self.label_dist)[exclude_mask].tolist()
         else:
             targets = np.array(self.targets)
             exclude = np.array(exclude_list).reshape(1, -1)
@@ -440,6 +470,7 @@ class MBFRUncertain(MiraBest_F):
             self.targets = targets[exclude_mask].tolist()
             self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
             self.filenames = np.array(self.filenames)[exclude_mask].tolist()
+            self.label_dist = np.array(self.label_dist)[exclude_mask].tolist()
 
 class MBRandom(MiraBest_F):
 
