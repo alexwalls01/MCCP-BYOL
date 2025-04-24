@@ -459,7 +459,7 @@ def run_post_evaluation(run_id):
     # Test values of alpha
     mb_calibration = MBFRFull(root=paths["mb"],
                               train=False,
-                              calibration=True
+                              calibration=True,
                               transform=transform,
                               download=False,
                               aug_type="torchvision"
