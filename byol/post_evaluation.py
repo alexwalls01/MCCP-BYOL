@@ -14,6 +14,7 @@ import json
 import torchvision.transforms as T
 import pickle
 import torch.nn.functional as F
+from matplotlib.lines import Line2D
 
 from paths import Path_Handler
 from config import load_config, update_config, load_config_finetune, load_config_evaluation
@@ -354,11 +355,14 @@ def plot_embedding(fig_path, plot_data):
         else:
             fr_classes.append("Hybrid")
 
-    clset = set(zip(plot_data["labels"], fr_classes))
-    #ax.set_title(plot_data["title"])
     sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["labels"], cmap=cmap, ec=None, alpha=0.5, s=marker_size)
-    handles = [pylab.plot([],color=sc.get_cmap()(sc.norm(c)),ls="", marker="o")[0] for c,l in clset]
-    labels = [l for c,l in clset]
+    cl_pairs = list(zip(plot_data["labels"], fr_classes))
+    cl_unique = sorted(set(cl_pairs), key=lambda x: x[0])
+    handles = [
+        Line2D([], [], color=cmap(sc.norm(code)), marker="o", ls="")
+        for code, lbl in cl_unique
+    ]
+    labels = [lbl for code, lbl in cl_unique]
     ax.legend(handles, labels)
     ax.set_xlabel("UMAP x")
     ax.set_ylabel("UMAP y")
