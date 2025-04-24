@@ -164,7 +164,7 @@ class FineTune(pl.LightningModule):
             add_dataloader_idx=False,
         )
     
-    def predict_step(self, batch, batch_idx, dataloader_idx=0, only_logits=False):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
         # Unpack the batch: x (inputs), y (labels), filenames (identifiers)
         x, y, filenames = batch
 

@@ -97,6 +97,7 @@ class Base_DataModule(pl.LightningDataModule):
 
         return loader
 
+
     def val_dataloader(self):
         loaders = [
             DataLoader(
@@ -304,6 +305,17 @@ class FineTuning_DataModule(pl.LightningDataModule):
             shuffle=False,
         )
         return loader
+    
+    def calibration_dataloader(self):
+        loader = DataLoader(
+            self.data["calibration"],
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            prefetch_factor=self.prefetch_factor,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )
+        return loader
 
     def test_dataloader(self):
         loaders = [
@@ -409,16 +421,23 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
             )
         # Train with annotator-derived labels
         else:
-            self.data["train"] = MBFRConfident(
+            self.data["train"] = MBFRFull(
                 self.path,
                 aug_type="torchvision",
                 train=True,
                 transform=self.train_transform,
             ).with_annotator_labels(self.label_dist, self.RA_dec)
-            self.data["val"] = MBFRConfident(
+            self.data["val"] = MBFRFull(
                 self.path,
                 aug_type="torchvision",
                 train=True,
+                transform=self.test_transform,
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
+            self.data["calibration"] = MBFRFull(
+                self.path,
+                aug_type="torchvision",
+                train=False,
+                calibration=True,
                 transform=self.test_transform,
             ).with_annotator_labels(self.label_dist, self.RA_dec)
 

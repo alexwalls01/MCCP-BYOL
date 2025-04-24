@@ -106,7 +106,7 @@ class MiraBest_F(data.Dataset):
         elif not self.train and test_size is None:
             downloaded_list = self.test_list
         elif not self.train and self.calibration:
-            downloaded_list = self.calibration
+            downloaded_list = self.calibration_list
         else:
             downloaded_list = self.train_list + self.test_list + self.calibration_list
 
@@ -298,6 +298,22 @@ class MiraBest_F(data.Dataset):
     def subset_by_label(self, label: int):
         indices = [i for i, t in enumerate(self.targets) if t == label]
         return Subset(self, indices)
+    
+    def get_target(self, filename):
+        try:
+            index = self.filenames.index(filename)
+            return self.targets[index]
+        except ValueError:
+            # Filename not found in the list.
+            return None
+    
+    def get_dist(self, filename):
+        try:
+            index = self.filenames.index(filename)
+            return self.label_dist[index]
+        except ValueError:
+            # Filename not found in the list.
+            return None
     
 
 class MBFRFull(MiraBest_F):

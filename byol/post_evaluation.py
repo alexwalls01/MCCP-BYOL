@@ -13,6 +13,7 @@ from matplotlib import colors
 import json
 import torchvision.transforms as T
 import pickle
+import torch.nn.functional as F
 
 from paths import Path_Handler
 from config import load_config, update_config, load_config_finetune, load_config_evaluation
@@ -190,77 +191,59 @@ def load_dataloader(stage):
         dataloader = datamodule.test_dataloader()
     elif stage == "val":
         dataloader = datamodule.val_dataloader()
+    elif stage == "calibration":
+        dataloader = datamodule.calibration_dataloader()
     else:
         raise ValueError("Unsupported dataloader stage.")
     return dataloader
 
-def calculate_accuracy(model, stage):
+def create_calibration_set(model, label_dist, RA_dec, m):
+
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
-    prediction_loader = load_dataloader(stage)
-    batch_results = trainer.predict(model, dataloaders=prediction_loader)
+    prediction_loader = load_dataloader("calibration")
+    batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
 
-    # Initialize aggregated counts for each class
-    aggregated = {}
-    for class_idx in range(model.n_classes):
-        aggregated[f"class_{class_idx}"] = {"correct": 0, "total": 0}
+    predictions = []
+    for batch in batch_predictions:
+        # Ensure logits are in a list format.
+        logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+        for filename, logit in zip(batch["filenames"], logits_list):
+            predictions.append({"filename": filename, "logits": logit})
+    
+    mbfr_annotated = MBFRFull().with_annotator_labels(label_dist, RA_dec)
+    for sample in predictions:
+        filename = sample["filename"]
+        # Extract the target class using the method provided by MBFRFull.
+        target = mbfr_annotated.get_target(filename)
+        dist = mbfr_annotated.get_dist(filename)
+        sample["class"] = target
+        sample["label_dist"] = dist
 
-    # Flatten nested results (if needed)
-    flat_results = []
-    for result in batch_results:
-        if isinstance(result, list):
-            flat_results.extend(result)
-        else:
-            flat_results.append(result)
-    
-    # Initialize aggregated counts for each class with keys for both correct and incorrect ids.
-    aggregated = {f"class_{i}": {"correct": 0, "total": 0, "correct_ids": [], "incorrect_ids": [], "all_files": [], "all_predictions": []} 
-                  for i in range(model.n_classes)}
-    
-    # Aggregate counts over all flattened batches
-    for batch_result in flat_results:
-        for class_key, counts in batch_result.items():
-            aggregated[class_key]["correct"] += counts["correct"]
-            aggregated[class_key]["total"] += counts["total"]
-            aggregated[class_key]["correct_ids"].extend(counts.get("correct_ids", []))
-            aggregated[class_key]["incorrect_ids"].extend(counts.get("incorrect_ids", []))
-            aggregated[class_key]["all_files"].extend(counts.get("all_files", []))
-            aggregated[class_key]["all_predictions"].extend(counts.get("all_predictions", []))
-    
-    # Compute overall accuracy per class
-    overall_accuracy = {}
-    for class_key, counts in aggregated.items():
-        if counts["total"] > 0:
-            overall_accuracy[class_key] = {
-                "accuracy": counts["correct"] / counts["total"],
-                "total": counts["total"],
-                "correct": counts["correct"],
-                "correct_ids": counts["correct_ids"],
-                "incorrect_ids": counts["incorrect_ids"],
-                "all_files": counts["all_files"],
-                "all_predictions": counts["all_predictions"]
-            }
-        else:
-            overall_accuracy[class_key] = {
-                "accuracy": None,
-                "total": counts["total"],
-                "correct": counts["correct"],
-                "correct_ids": counts["correct_ids"],
-                "incorrect_ids": counts["incorrect_ids"],
-                "all_files": counts["all_files"],
-                "all_predictions": counts["all_predictions"]
-            }
-    
-    return overall_accuracy
+    calibration_set = []
+    for sample in predictions:
+        calibration_set.append(sample)
+        for i in range(m):
+            # Sample new label according to label distribution
+            sampled_target = np.random.choice([0, 1, 2], p=sample["label_dist"])
+            duplicate_sample = sample
+            duplicate_sample["class"] = sampled_target
+            calibration_set.append(duplicate_sample)
 
-def save_accuracy(ckpt_name, model, save_dir, stage):
-    # Ensure save folder exists
-    os.makedirs(save_dir, exist_ok=True)
-    # Get overall per-class accuracies
-    overall_accuracy = calculate_accuracy(model, stage)
-    # Save overall per-class accuracies to a JSON file
-    output_filepath = os.path.join(save_dir, f"{ckpt_name}_{stage}_accuracy.json")
-    with open(output_filepath, "w") as f:
-        json.dump(overall_accuracy, f, indent=4)
+    return calibration_set
+
+def calculate_threshold(calibration_set, alpha):
+    non_conformity_scores = []
+    for sample in calibration_set:
+        softmax = F.softmax(torch.tensor(sample["logits"]), dim=0).tolist()
+        target = sample["class"]
+        score = 1 - softmax[target]
+        non_conformity_scores.append(score)
+    non_conformity_scores = np.array(non_conformity_scores)
+    threshold = np.quantile(non_conformity_scores, 1 - alpha)
+    return threshold
+
+
+
 
 def create_subplots(n):
 
@@ -349,13 +332,11 @@ def run_post_evaluation(run_id):
     ckpt_path = os.path.join(ckpt_folder, run_id, wandb_project, run_id, "checkpoints", "epoch=299-step=3600.ckpt")
     model = load_checkpoint(ckpt_path)
 
-    # Save accuracy data for the run to a JSON file
-    save_accuracy(run_id, model, save_dir, "val")
-    save_accuracy(run_id, model, save_dir, "test")
-
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
     config = byol_model.config
     mu, sig = config["data"]["mu"], config["data"]["sig"]
+    label_dist=np.load(config["conformal_prediction"]["label_dist"])
+    RA_dec=np.load(config["conformal_prediction"]["RA_dec"])
 
     encoder = model.encoder
     encoder.eval()
