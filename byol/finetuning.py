@@ -164,48 +164,13 @@ class FineTune(pl.LightningModule):
             add_dataloader_idx=False,
         )
     
-    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0, only_logits=False):
         # Unpack the batch: x (inputs), y (labels), filenames (identifiers)
         x, y, filenames = batch
 
         # Run the forward pass to get logits and predictions.
         logits = self.forward(x)
-        preds = logits.argmax(dim=1)
-        
-        # Convert tensors to lists where needed.
-        y_list = y.tolist() if torch.is_tensor(y) else y
-        preds_list = preds.tolist() if torch.is_tensor(preds) else preds
-        # Ensure filenames is a list (if it isn’t already).
-        if not isinstance(filenames, list):
-            filenames = list(filenames)
-
-        results = {}
-        for class_idx in range(self.n_classes):
-            # Get the indices of samples that belong to the current class using torch.where.
-            indices = torch.where(y == class_idx)[0].tolist()
-            total = len(indices)
-            if total > 0:
-                # Using the indices from the mask, select the filenames for correct/incorrect predictions.
-                correct_ids = [filenames[i] for i in indices if preds_list[i] == y_list[i]]
-                incorrect_ids = [filenames[i] for i in indices if preds_list[i] != y_list[i]]
-                correct = len(correct_ids)
-                all_files = [filenames[i] for i in indices]
-                all_predictions = [preds_list[i] for i in indices]
-            else:
-                correct = 0
-                correct_ids = []
-                incorrect_ids = []
-                all_files = []
-                all_predictions = []
-            results[f"class_{class_idx}"] = {
-                "correct": correct,
-                "total": total,
-                "correct_ids": correct_ids,
-                "incorrect_ids": incorrect_ids,
-                "all_files": all_files,
-                "all_predictions": all_predictions
-            }
-        return results
+        return {"filenames": filenames, "logits": logits}
 
 
     def configure_optimizers(self):
