@@ -245,9 +245,17 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     prediction_loader = load_dataloader("test", label_dist=label_dist, RA_dec=RA_dec)
     batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
+    # Because the test set has confident and uncertain subsets
+    batch_predictions_1 = batch_predictions[0]
+    batch_predictions_2 = batch_predictions[1]
 
     predictions = []
-    for batch in batch_predictions:
+    for batch in batch_predictions_1:
+        # Ensure logits are in a list format.
+        logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+        for filename, logit in zip(batch["filenames"], logits_list):
+            predictions.append({"filename": filename, "logits": logit})
+    for batch in batch_predictions_2:
         # Ensure logits are in a list format.
         logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
         for filename, logit in zip(batch["filenames"], logits_list):
@@ -307,6 +315,7 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     else:
         ax.set_xlabel(r'1 - \textalpha')
     ax.set_ylabel("Number of test samples")
+    ax.set_box_aspect(1)
     ax.set_aspect('equal', adjustable='box')
     ax.plot(1 - alphas, empty, label="Empty")
     ax.plot(1 - alphas, single, label="1")
@@ -347,6 +356,7 @@ def plot_embedding(fig_path, plot_data):
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
     ax.set_aspect('equal', adjustable='box')
+    ax.set_box_aspect(1)
     #ax.get_xaxis().set_visible(False)
     #ax.get_yaxis().set_visible(False)
 
