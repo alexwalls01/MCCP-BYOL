@@ -242,42 +242,81 @@ def calculate_threshold(calibration_set, alpha):
     threshold = np.quantile(non_conformity_scores, 1 - alpha)
     return threshold
 
+def create_prediction_sets(model, label_dist, RA_dec, threshold):
+    trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
+    prediction_loader = load_dataloader("test")
+    batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
 
+    predictions = []
+    for batch in batch_predictions:
+        # Ensure logits are in a list format.
+        logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+        for filename, logit in zip(batch["filenames"], logits_list):
+            predictions.append({"filename": filename, "logits": logit})
+    
+    mbfr_annotated = MBFRFull().with_annotator_labels(label_dist, RA_dec)
+    for sample in predictions:
+        filename = sample["filename"]
+        # Extract the target class using the method provided by MBFRFull.
+        target = mbfr_annotated.get_target(filename)
+        dist = mbfr_annotated.get_dist(filename)
+        sample["class"] = target
+        sample["label_dist"] = dist
+    
+    for sample in predictions:
+        prediction_set = []
+        softmax = F.softmax(torch.tensor(sample["logits"]), dim=0).tolist()
+        for i in range(3):
+            if softmax[i] <= threshold:
+                prediction_set.append(softmax[i])
+            else:
+                prediction_set.append(0)
+        sample["prediction_set"] = prediction_set
+    
+    return predictions
 
+def test_alpha(model, label_dist, RA_dec, m, fig_path):
 
-def create_subplots(n):
+    alphas = np.arange(0, 1, 0.01)
+    fig, ax = pylab.subplots(constrained_layout=True)
 
-    # Calculate grid dimensions
-    cols = int(np.ceil(np.sqrt(n)))
-    rows = int(np.ceil(n / cols))
+    empty = []
+    single = []
+    double = []
+    full = []
+    for alpha in alphas:
+
+        calibration_set = create_calibration_set(model, label_dist, RA_dec, m)
+        threshold = calculate_threshold(calibration_set, alpha)
+        predictions = create_prediction_sets(model, label_dist, RA_dec, threshold)
+
+        prediction_sets = []
+        for sample in predictions:
+            prediction_sets.append(sample["prediction_set"])
+
+        sizes = [0,0,0,0]
+        for set in prediction_sets:
+            size = 3 - set.count(0)
+            sizes[size] += 1
+        empty.append(sizes[0])
+        single.append(sizes[1])
+        double.append(sizes[2])
+        full.append(sizes[3])
     
-    fig = pylab.figure(constrained_layout=True)
-    gs = gridspec.GridSpec(rows, cols, figure=fig)
-    
-    axes = []
-    # Create axes for all full rows except the last one
-    for i in range(rows - 1):
-        for j in range(cols):
-            ax = fig.add_subplot(gs[i, j])
-            ax.set_aspect('equal', adjustable='box')
-            ax.set_box_aspect(1) # Make all subplots square
-            axes.append(ax)
-    
-    # Centre the subplots in the last row
-    num_last = n - (rows - 1) * cols  # Number of axes needed in the last row
-    offset = (cols - num_last) // 2   # Left offset to centre the last row
-    for j in range(num_last):
-        ax = fig.add_subplot(gs[rows - 1, offset + j])
-        ax.set_aspect('equal', adjustable='box')
-        ax.set_box_aspect(1) # Make all subplots square
-        axes.append(ax)
-    
-    return fig, axes
+    ax.set_aspect('equal', adjustable='box')
+    ax.plot(1 - alphas, empty, label="Empty")
+    ax.plot(1 - alphas, single, label="1")
+    ax.plot(1 - alphas, double, label="2")
+    ax.plot(1 - alphas, full, label="3")
+    ax.set_xlabel(r"1 - \alpha")
+    ax.set_ylabel("Number of test samples")
+    fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
 
 def plot_embedding(fig_path, plot_data):
 
-    fig, axes = create_subplots(len(plot_data))
+    fig, ax = pylab.subplots(constrained_layout=True)
+
     marker_size = 2
     xmin = np.min(plot_data[0]["umap"][:, 0]) - 0.5
     xmax = np.max(plot_data[0]["umap"][:, 0]) + 0.5
@@ -286,32 +325,27 @@ def plot_embedding(fig_path, plot_data):
 
     cmap = colors.LinearSegmentedColormap.from_list("", ["#648FFF","#DC267F","#FFB000"])
 
-    #for ax in axes[1:]:
-        #ax.sharex(axes[0])
-        #ax.sharey(axes[0])
+    fr_classes = []
+    for label in plot_data["labels"]:
+        if label == 0:
+            fr_classes.append("FRI")
+        elif label == 1:
+            fr_classes.append("FRII")
+        else:
+            fr_classes.append("Hybrid")
 
-    for index, ax in enumerate(axes):
-        fr_classes = []
-        for label in plot_data[index]["labels"]:
-            if label == 0:
-                fr_classes.append("FRI")
-            elif label == 1:
-                fr_classes.append("FRII")
-            else:
-                fr_classes.append("Hybrid")
-
-        clset = set(zip(plot_data[index]["labels"], fr_classes))
-        ax.set_title(plot_data[index]["title"])
-        sc = ax.scatter(plot_data[index]["umap"][:, 0], plot_data[index]["umap"][:, 1], c=plot_data[index]["labels"], cmap=cmap, alpha=0.5, s=marker_size)
-        handles = [pylab.plot([],color=sc.get_cmap()(sc.norm(c)),ls="", marker="o")[0] for c,l in clset]
-        labels = [l for c,l in clset]
-        ax.legend(handles, labels)
-        #ax.set_xlim(xmin, xmax)
-        #ax.set_ylim(ymin, ymax)
-        ax.set_xlabel("UMAP x")
-        ax.set_ylabel("UMAP y")
-        #ax.get_xaxis().set_visible(False)
-        #ax.get_yaxis().set_visible(False)
+    clset = set(zip(plot_data["labels"], fr_classes))
+    ax.set_title(plot_data["title"])
+    sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["labels"], cmap=cmap, alpha=0.5, s=marker_size)
+    handles = [pylab.plot([],color=sc.get_cmap()(sc.norm(c)),ls="", marker="o")[0] for c,l in clset]
+    labels = [l for c,l in clset]
+    ax.legend(handles, labels)
+    #ax.set_xlim(xmin, xmax)
+    #ax.set_ylim(ymin, ymax)
+    ax.set_xlabel("UMAP x")
+    ax.set_ylabel("UMAP y")
+    #ax.get_xaxis().set_visible(False)
+    #ax.get_yaxis().set_visible(False)
 
     pylab.gca().set_aspect("equal", "datalim")
 
@@ -404,26 +438,21 @@ def run_post_evaluation(run_id):
     # Put together data to plot
     plot_data_orig = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                       "labels": np.concatenate((mb_train_labels, mb_test_labels), axis=0),
-                      "title": "MiraBest labels",
+                      "title": "Annotator labels",
                       }
     plot_data_preds = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                        "labels": np.concatenate((mb_train_preds, mb_test_preds), axis=0),
                        "title": "Model predictions",
                        }
-    plot_data_orig_test = {"umap": mb_test_umap,
-                           "labels": mb_test_labels,
-                           "title": "MiraBest labels",
-                           }
-    plot_data_preds_test = {"umap": mb_test_umap,
-                            "labels": mb_test_preds,
-                            "title": "Model predictions",
-                            }
-    plot_data = [plot_data_orig, plot_data_preds]
-    plot_data_test = [plot_data_orig_test, plot_data_preds_test]
 
     # Plot embedding
-    plot_embedding(save_dir + "/" + run_id + "_embedding_test.png", plot_data_test)
-    plot_embedding(save_dir + "/" + run_id + "_embedding.png", plot_data)
+    plot_embedding(save_dir + "/" + run_id + "_embedding_annotations.png", plot_data_orig)
+    plot_embedding(save_dir + "/" + run_id + "_embedding_predictions.png", plot_data_preds)
+
+    # Test values of alpha
+    test_alpha(model, label_dist, RA_dec, 1, save_dir + "/" + run_id + "_alphatest_m=1.png")
+    test_alpha(model, label_dist, RA_dec, 10, save_dir + "/" + run_id + "_alphatest_m=10.png")
+    test_alpha(model, label_dist, RA_dec, 100, save_dir + "/" + run_id + "_alphatest_m=100.png")
 
 def main():
     run_post_evaluation(RUN_ID)
