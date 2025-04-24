@@ -373,8 +373,8 @@ def run_post_evaluation(run_id):
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
     config = byol_model.config
     mu, sig = config["data"]["mu"], config["data"]["sig"]
-    label_dist=np.load(config["conformal_prediction"]["label_dist"])
-    RA_dec=np.load(config["conformal_prediction"]["RA_dec"])
+    label_dist=np.load(finetune_config["conformal_prediction"]["label_dist"])
+    RA_dec=np.load(finetune_config["conformal_prediction"]["RA_dec"])
 
     encoder = model.encoder
     encoder.eval()
