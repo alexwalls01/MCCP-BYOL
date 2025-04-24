@@ -367,7 +367,7 @@ def run_post_evaluation(run_id):
     save_dir = eval_config['save_dir'] + "/" + wandb_project
     os.makedirs(save_dir, exist_ok=True)
 
-    ckpt_path = os.path.join(ckpt_folder, run_id, wandb_project, run_id, "checkpoints", "epoch=299-step=3600.ckpt")
+    ckpt_path = os.path.join(ckpt_folder, run_id, wandb_project, run_id, "checkpoints", "epoch=299-step=3000.ckpt")
     model = load_checkpoint(ckpt_path)
 
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
