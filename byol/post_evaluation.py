@@ -321,10 +321,12 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     
     if m > 1:
         alphas = 2 * alphas
-        ax.set_xlabel(r'1 - 2$\alpha$')
+        ax.set_xlabel(r'1 - 2$\alpha$', fontsize=32)
     else:
         ax.set_xlabel(r'1 - $\alpha$')
-    ax.set_ylabel("Number of test samples")
+    ax.set_ylabel("Number of test samples", fontsize=32)
+    ax.tick_params(axis='both', which='major', labelsize=24)
+    ax.tick_params(axis='both', which='minor', labelsize=24)
     ax.plot(1-alphas, empty, label="Empty")
     ax.plot(1-alphas, single, label="1")
     ax.plot(1-alphas, double, label="2")
@@ -365,8 +367,10 @@ def plot_embedding(fig_path, plot_data):
     ]
     labels = [lbl for code, lbl in cl_unique]
     ax.legend(handles, labels)
-    ax.set_xlabel("UMAP x")
-    ax.set_ylabel("UMAP y")
+    ax.set_xlabel("UMAP x", fontsize=32)
+    ax.set_ylabel("UMAP y", fontsize=32)
+    ax.tick_params(axis='both', which='major', labelsize=24)
+    ax.tick_params(axis='both', which='minor', labelsize=24)
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
     ax.set_aspect('equal', adjustable='box')
