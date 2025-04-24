@@ -283,7 +283,7 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
 
 def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
 
-    alphas = np.arange(0, 1, 0.01)
+    alphas = np.arange(0, 0.5, 0.025)
     fig, ax = pylab.subplots(constrained_layout=True)
 
     empty = []
@@ -328,7 +328,7 @@ def plot_embedding(fig_path, plot_data):
 
     fig, ax = pylab.subplots(constrained_layout=True)
 
-    marker_size = 3
+    marker_size = 7
     xmin = np.min(plot_data["umap"][:, 0]) - 0.5
     xmax = np.max(plot_data["umap"][:, 0]) + 0.5
     ymin = np.min(plot_data["umap"][:, 1]) - 0.5
@@ -488,7 +488,7 @@ def run_post_evaluation(run_id):
                               aug_type="torchvision"
                               ).with_annotator_labels(label_dist, RA_dec)
 
-    test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
+    test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1_short.png", label_dist, RA_dec)
     test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
     test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
 
