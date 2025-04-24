@@ -320,6 +320,10 @@ def plot_embedding(fig_path, plot_data):
     fig, ax = pylab.subplots(constrained_layout=True)
 
     marker_size = 3
+    xmin = np.min(plot_data["umap"][:, 0]) - 0.5
+    xmax = np.max(plot_data["umap"][:, 0]) + 0.5
+    ymin = np.min(plot_data["umap"][:, 1]) - 0.5
+    ymax = np.max(plot_data["umap"][:, 1]) + 0.5
 
     cmap = colors.LinearSegmentedColormap.from_list("", ["#648FFF","#DC267F","#FFB000"])
 
@@ -340,11 +344,13 @@ def plot_embedding(fig_path, plot_data):
     ax.legend(handles, labels)
     ax.set_xlabel("UMAP x")
     ax.set_ylabel("UMAP y")
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
     ax.set_aspect('equal', adjustable='box')
     #ax.get_xaxis().set_visible(False)
     #ax.get_yaxis().set_visible(False)
 
-    #pylab.gca().set_aspect("equal", "datalim")
+    pylab.gca().set_aspect("equal", "datalim")
 
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
