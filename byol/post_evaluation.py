@@ -327,10 +327,10 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     ax.set_ylabel("Number of test samples", fontsize=20)
     ax.tick_params(axis='both', which='major', labelsize=15)
     ax.tick_params(axis='both', which='minor', labelsize=15)
-    ax.plot(1-alphas, empty, label="Empty")
-    ax.plot(1-alphas, single, label="1")
-    ax.plot(1-alphas, double, label="2")
-    ax.plot(1-alphas, full, label="3")
+    ax.plot(1-alphas, empty, label="Empty", c="#648FFF")
+    ax.plot(1-alphas, single, label="1", c="#785EF0")
+    ax.plot(1-alphas, double, label="2", c="#DC267F")
+    ax.plot(1-alphas, full, label="3", c="#FE6100")
     ax.legend()
     ax.set_xlim(-0.025, 1.025)
     ax.set_box_aspect(1)
@@ -347,7 +347,7 @@ def plot_embedding(fig_path, plot_data):
     ymin = np.min(plot_data["umap"][:, 1]) - 0.5
     ymax = np.max(plot_data["umap"][:, 1]) + 0.5
 
-    cmap = colors.LinearSegmentedColormap.from_list("", ["#648FFF","#DC267F","#FFB000"])
+    cmap = colors.LinearSegmentedColormap.from_list("", ["#648FFF","#DC267F","#FE6100"])
 
     fr_classes = []
     for label in plot_data["labels"]:
