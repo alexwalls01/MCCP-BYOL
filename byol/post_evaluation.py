@@ -248,10 +248,12 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
 
     predictions = []
     for batch in batch_predictions:
-        # Ensure logits are in a list format.
-        logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
-        for filename, logit in zip(batch["filenames"], logits_list):
-            predictions.append({"filename": filename, "logits": logit})
+        batch_logits = batch["logits"]
+        for idx, fname in enumerate(batch["filenames"]):
+            predictions.append({
+                "filename": fname,
+                "logits": batch_logits[idx].tolist()
+            })
 
     for sample in predictions:
         filename = sample["filename"]
