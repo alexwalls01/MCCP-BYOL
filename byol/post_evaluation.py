@@ -274,7 +274,7 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
         prediction_set = []
         softmax = F.softmax(torch.tensor(sample["logits"]), dim=0).tolist()
         for i in range(3):
-            if softmax[i] <= threshold:
+            if 1 - softmax[i] <= threshold:
                 prediction_set.append(softmax[i])
             else:
                 prediction_set.append(0)
@@ -284,9 +284,9 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
 
 def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     if m == 1:
-        alphas = np.arange(0, 1, 0.025)
+        alphas = np.arange(0, 1, 0.01)
     else:
-        alphas = np.arange(0, 0.5, 0.025)
+        alphas = np.arange(0, 0.5, 0.01)
     fig, ax = pylab.subplots(constrained_layout=True)
 
     calibration_set = create_calibration_set(model, mb_calibration, m, label_dist, RA_dec)
