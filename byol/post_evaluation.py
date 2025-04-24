@@ -197,7 +197,7 @@ def load_dataloader(stage, label_dist=None, RA_dec=None):
         raise ValueError("Unsupported dataloader stage.")
     return dataloader
 
-def create_calibration_set(model, label_dist, RA_dec, m):
+def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec):
 
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     prediction_loader = load_dataloader("calibration", label_dist=label_dist, RA_dec=RA_dec)
@@ -210,12 +210,11 @@ def create_calibration_set(model, label_dist, RA_dec, m):
         for filename, logit in zip(batch["filenames"], logits_list):
             predictions.append({"filename": filename, "logits": logit})
     
-    mbfr_annotated = MBFRFull().with_annotator_labels(label_dist, RA_dec)
     for sample in predictions:
         filename = sample["filename"]
         # Extract the target class using the method provided by MBFRFull.
-        target = mbfr_annotated.get_target(filename)
-        dist = mbfr_annotated.get_dist(filename)
+        target = mb_calibration.get_target(filename)
+        dist = mb_calibration.get_dist(filename)
         sample["class"] = target
         sample["label_dist"] = dist
 
@@ -242,7 +241,7 @@ def calculate_threshold(calibration_set, alpha):
     threshold = np.quantile(non_conformity_scores, 1 - alpha)
     return threshold
 
-def create_prediction_sets(model, label_dist, RA_dec, threshold):
+def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     prediction_loader = load_dataloader("test", label_dist=label_dist, RA_dec=RA_dec)
     batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
@@ -253,13 +252,12 @@ def create_prediction_sets(model, label_dist, RA_dec, threshold):
         logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
         for filename, logit in zip(batch["filenames"], logits_list):
             predictions.append({"filename": filename, "logits": logit})
-    
-    mbfr_annotated = MBFRFull().with_annotator_labels(label_dist, RA_dec)
+
     for sample in predictions:
         filename = sample["filename"]
         # Extract the target class using the method provided by MBFRFull.
-        target = mbfr_annotated.get_target(filename)
-        dist = mbfr_annotated.get_dist(filename)
+        target = mb_test.get_target(filename)
+        dist = mb_test.get_dist(filename)
         sample["class"] = target
         sample["label_dist"] = dist
     
@@ -275,7 +273,7 @@ def create_prediction_sets(model, label_dist, RA_dec, threshold):
     
     return predictions
 
-def test_alpha(model, label_dist, RA_dec, m, fig_path):
+def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
 
     alphas = np.arange(0, 1, 0.01)
     fig, ax = pylab.subplots(constrained_layout=True)
@@ -286,9 +284,9 @@ def test_alpha(model, label_dist, RA_dec, m, fig_path):
     full = []
     for alpha in alphas:
 
-        calibration_set = create_calibration_set(model, label_dist, RA_dec, m)
+        calibration_set = create_calibration_set(model, mb_calibration, m, label_dist, RA_dec)
         threshold = calculate_threshold(calibration_set, alpha)
-        predictions = create_prediction_sets(model, label_dist, RA_dec, threshold)
+        predictions = create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec)
 
         prediction_sets = []
         for sample in predictions:
@@ -459,9 +457,24 @@ def run_post_evaluation(run_id):
     plot_embedding(save_dir + "/" + run_id + "_embedding_annotations.png", plot_data_annotator)
 
     # Test values of alpha
-    test_alpha(model, label_dist, RA_dec, 1, save_dir + "/" + run_id + "_alphatest_m=1.png")
-    test_alpha(model, label_dist, RA_dec, 10, save_dir + "/" + run_id + "_alphatest_m=10.png")
-    test_alpha(model, label_dist, RA_dec, 100, save_dir + "/" + run_id + "_alphatest_m=100.png")
+    mb_calibration = MBFRFull(root=paths["mb"],
+                              train=False,
+                              calibration=True
+                              transform=transform,
+                              download=False,
+                              aug_type="torchvision"
+                              ).with_annotator_labels(label_dist, RA_dec)
+    
+    mb_test = MBFRFull(root=paths["mb"],
+                              train=False,
+                              transform=transform,
+                              download=False,
+                              aug_type="torchvision"
+                              ).with_annotator_labels(label_dist, RA_dec)
+
+    test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
+    test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
+    test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
 
 def main():
     run_post_evaluation(RUN_ID)
