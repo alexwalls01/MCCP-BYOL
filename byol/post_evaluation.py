@@ -289,13 +289,14 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
         alphas = np.arange(0, 0.5, 0.025)
     fig, ax = pylab.subplots(constrained_layout=True)
 
+    calibration_set = create_calibration_set(model, mb_calibration, m, label_dist, RA_dec)
+
     empty = []
     single = []
     double = []
     full = []
     for alpha in alphas:
 
-        calibration_set = create_calibration_set(model, mb_calibration, m, label_dist, RA_dec)
         threshold = calculate_threshold(calibration_set, alpha)
         predictions = create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec)
 
