@@ -282,8 +282,10 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
     return predictions
 
 def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
-
-    alphas = np.arange(0, 0.5, 0.025)
+    if m == 1:
+        alphas = np.arange(0, 1, 0.01)
+    else:
+        alphas = np.arange(0, 0.5, 0.01)
     fig, ax = pylab.subplots(constrained_layout=True)
 
     empty = []
@@ -309,18 +311,26 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
         double.append(sizes[2])
         full.append(sizes[3])
     
+    empty = np.flip(np.array(empty))
+    single = np.flip(np.array(single))
+    double = np.flip(np.array(double))
+    full = np.flip(np.array(full))
+    alphas = np.flip(alphas)
+    
     if m > 1:
         alphas = 2 * alphas
-        ax.set_xlabel(r'1 - 2\textalpha')
+        ax.set_xlabel(r'1 - 2$\alpha$')
     else:
-        ax.set_xlabel(r'1 - \textalpha')
+        ax.set_xlabel(r'1 - $\alpha$')
     ax.set_ylabel("Number of test samples")
-    ax.set_box_aspect(1)
     ax.set_aspect('equal', adjustable='box')
-    ax.plot(1 - alphas, empty, label="Empty")
-    ax.plot(1 - alphas, single, label="1")
-    ax.plot(1 - alphas, double, label="2")
-    ax.plot(1 - alphas, full, label="3")
+    ax.set_box_aspect(1)
+    ax.plot(1-alphas, empty, label="Empty")
+    ax.plot(1-alphas, single, label="1")
+    ax.plot(1-alphas, double, label="2")
+    ax.plot(1-alphas, full, label="3")
+    ax.legend()
+    pylab.gca().set_aspect("equal", "datalim")
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
 
@@ -488,7 +498,7 @@ def run_post_evaluation(run_id):
                               aug_type="torchvision"
                               ).with_annotator_labels(label_dist, RA_dec)
 
-    test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1_short.png", label_dist, RA_dec)
+    test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
     test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
     test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
 
