@@ -321,12 +321,12 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     
     if m > 1:
         alphas = 2 * alphas
-        ax.set_xlabel(r'1 - 2$\alpha$', fontsize=20)
+        ax.set_xlabel(r'1 - 2$\alpha$', fontsize=18)
     else:
         ax.set_xlabel(r'1 - $\alpha$')
-    ax.set_ylabel("Number of test samples", fontsize=20)
-    ax.tick_params(axis='both', which='major', labelsize=15)
-    ax.tick_params(axis='both', which='minor', labelsize=15)
+    ax.set_ylabel("Number of test samples", fontsize=18)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.tick_params(axis='both', which='minor', labelsize=14)
     ax.plot(1-alphas, empty, label="Empty", c="#648FFF")
     ax.plot(1-alphas, single, label="1", c="#785EF0")
     ax.plot(1-alphas, double, label="2", c="#DC267F")
@@ -347,7 +347,7 @@ def plot_embedding(fig_path, plot_data):
     ymin = np.min(plot_data["umap"][:, 1]) - 0.5
     ymax = np.max(plot_data["umap"][:, 1]) + 0.5
 
-    cmap = colors.LinearSegmentedColormap.from_list("", ["#648FFF","#DC267F","#FE6100"])
+    cmap = colors.LinearSegmentedColormap.from_list("", ["#648FFF","#DC267F","#FFB000"])
 
     fr_classes = []
     for label in plot_data["labels"]:
@@ -367,10 +367,10 @@ def plot_embedding(fig_path, plot_data):
     ]
     labels = [lbl for code, lbl in cl_unique]
     ax.legend(handles, labels)
-    ax.set_xlabel("UMAP x", fontsize=20)
-    ax.set_ylabel("UMAP y", fontsize=20)
-    ax.tick_params(axis='both', which='major', labelsize=15)
-    ax.tick_params(axis='both', which='minor', labelsize=15)
+    ax.set_xlabel("UMAP x", fontsize=18)
+    ax.set_ylabel("UMAP y", fontsize=18)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.tick_params(axis='both', which='minor', labelsize=14)
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
     ax.set_aspect('equal', adjustable='box')
