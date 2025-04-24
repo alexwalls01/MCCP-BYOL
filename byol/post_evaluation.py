@@ -248,12 +248,10 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
 
     predictions = []
     for batch in batch_predictions:
-        batch_logits = batch["logits"]
-        for idx, fname in enumerate(batch["filenames"]):
-            predictions.append({
-                "filename": fname,
-                "logits": batch_logits[idx].tolist()
-            })
+        # Ensure logits are in a list format.
+        logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+        for filename, logit in zip(batch["filenames"], logits_list):
+            predictions.append({"filename": filename, "logits": logit})
 
     for sample in predictions:
         filename = sample["filename"]
@@ -336,7 +334,7 @@ def plot_embedding(fig_path, plot_data):
 
     clset = set(zip(plot_data["labels"], fr_classes))
     #ax.set_title(plot_data["title"])
-    sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["labels"], cmap=cmap, alpha=0.5, s=marker_size)
+    sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["labels"], cmap=cmap, ec=None, alpha=0.5, s=marker_size)
     handles = [pylab.plot([],color=sc.get_cmap()(sc.norm(c)),ls="", marker="o")[0] for c,l in clset]
     labels = [l for c,l in clset]
     ax.legend(handles, labels)
