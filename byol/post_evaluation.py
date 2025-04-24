@@ -320,7 +320,6 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
 def plot_embedding(fig_path, plot_data):
 
     fig, ax = pylab.subplots(constrained_layout=True)
-    ax.set_aspect('equal', adjustable='box')
 
     marker_size = 3
 
@@ -343,10 +342,11 @@ def plot_embedding(fig_path, plot_data):
     ax.legend(handles, labels)
     ax.set_xlabel("UMAP x")
     ax.set_ylabel("UMAP y")
+    ax.set_aspect('equal', adjustable='box')
     #ax.get_xaxis().set_visible(False)
     #ax.get_yaxis().set_visible(False)
 
-    pylab.gca().set_aspect("equal", "datalim")
+    #pylab.gca().set_aspect("equal", "datalim")
 
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
