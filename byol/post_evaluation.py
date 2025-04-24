@@ -283,9 +283,9 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
 
 def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     if m == 1:
-        alphas = np.arange(0, 1, 0.01)
+        alphas = np.arange(0, 1, 0.025)
     else:
-        alphas = np.arange(0, 0.5, 0.01)
+        alphas = np.arange(0, 0.5, 0.025)
     fig, ax = pylab.subplots(constrained_layout=True)
 
     empty = []
@@ -323,14 +323,13 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     else:
         ax.set_xlabel(r'1 - $\alpha$')
     ax.set_ylabel("Number of test samples")
-    ax.set_aspect('equal', adjustable='box')
-    ax.set_box_aspect(1)
     ax.plot(1-alphas, empty, label="Empty")
     ax.plot(1-alphas, single, label="1")
     ax.plot(1-alphas, double, label="2")
     ax.plot(1-alphas, full, label="3")
     ax.legend()
-    pylab.gca().set_aspect("equal", "datalim")
+    ax.set_xlim(-0.025, 1.025)
+    ax.set_box_aspect(1)
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
 
@@ -338,7 +337,7 @@ def plot_embedding(fig_path, plot_data):
 
     fig, ax = pylab.subplots(constrained_layout=True)
 
-    marker_size = 7
+    marker_size = 10
     xmin = np.min(plot_data["umap"][:, 0]) - 0.5
     xmax = np.max(plot_data["umap"][:, 0]) + 0.5
     ymin = np.min(plot_data["umap"][:, 1]) - 0.5
