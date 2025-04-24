@@ -303,13 +303,17 @@ def test_alpha(model, label_dist, RA_dec, m, fig_path):
         double.append(sizes[2])
         full.append(sizes[3])
     
+    if m > 1:
+        alphas = 2 * alphas
+        ax.set_xlabel(r'1 - 2\textalpha')
+    else:
+        ax.set_xlabel(r'1 - \textalpha')
+    ax.set_ylabel("Number of test samples")
     ax.set_aspect('equal', adjustable='box')
     ax.plot(1 - alphas, empty, label="Empty")
     ax.plot(1 - alphas, single, label="1")
     ax.plot(1 - alphas, double, label="2")
     ax.plot(1 - alphas, full, label="3")
-    ax.set_xlabel(r"1 - \alpha")
-    ax.set_ylabel("Number of test samples")
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
 
