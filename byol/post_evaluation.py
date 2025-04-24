@@ -158,7 +158,7 @@ def load_checkpoint(ckpt_path):
     model = FineTune.load_from_checkpoint(ckpt_path, encoder=encoder, head=head)
     return model
 
-def load_dataloader(stage):
+def load_dataloader(stage, label_dist=None, RA_dec=None):
     paths = Path_Handler()._dict()
 
     # Get model config
@@ -186,7 +186,7 @@ def load_dataloader(stage):
         pin_memory=config["dataloading"]["pin_memory"],
         seed=config["finetune"]["seed"],
     )
-    datamodule.setup(stage=stage)
+    datamodule.setup(stage=stage, label_dist=label_dist, RA_dec=RA_dec)
     if stage == "test":
         dataloader = datamodule.test_dataloader()
     elif stage == "val":
@@ -200,7 +200,7 @@ def load_dataloader(stage):
 def create_calibration_set(model, label_dist, RA_dec, m):
 
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
-    prediction_loader = load_dataloader("calibration")
+    prediction_loader = load_dataloader("calibration", label_dist=label_dist, RA_dec=RA_dec)
     batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
 
     predictions = []
@@ -244,7 +244,7 @@ def calculate_threshold(calibration_set, alpha):
 
 def create_prediction_sets(model, label_dist, RA_dec, threshold):
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
-    prediction_loader = load_dataloader("test")
+    prediction_loader = load_dataloader("test", label_dist=label_dist, RA_dec=RA_dec)
     batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
 
     predictions = []
@@ -320,8 +320,9 @@ def test_alpha(model, label_dist, RA_dec, m, fig_path):
 def plot_embedding(fig_path, plot_data):
 
     fig, ax = pylab.subplots(constrained_layout=True)
+    ax.set_aspect('equal', adjustable='box')
 
-    marker_size = 2
+    marker_size = 3
 
     cmap = colors.LinearSegmentedColormap.from_list("", ["#648FFF","#DC267F","#FFB000"])
 
@@ -335,13 +336,11 @@ def plot_embedding(fig_path, plot_data):
             fr_classes.append("Hybrid")
 
     clset = set(zip(plot_data["labels"], fr_classes))
-    ax.set_title(plot_data["title"])
+    #ax.set_title(plot_data["title"])
     sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["labels"], cmap=cmap, alpha=0.5, s=marker_size)
     handles = [pylab.plot([],color=sc.get_cmap()(sc.norm(c)),ls="", marker="o")[0] for c,l in clset]
     labels = [l for c,l in clset]
     ax.legend(handles, labels)
-    #ax.set_xlim(xmin, xmax)
-    #ax.set_ylim(ymin, ymax)
     ax.set_xlabel("UMAP x")
     ax.set_ylabel("UMAP y")
     #ax.get_xaxis().set_visible(False)
@@ -368,9 +367,10 @@ def run_post_evaluation(run_id):
 
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
     config = byol_model.config
+    config.update(finetune_config)
     mu, sig = config["data"]["mu"], config["data"]["sig"]
-    label_dist=np.load(finetune_config["conformal_prediction"]["label_dist"])
-    RA_dec=np.load(finetune_config["conformal_prediction"]["RA_dec"])
+    label_dist=np.load(config["conformal_prediction"]["label_dist"])
+    RA_dec=np.load(config["conformal_prediction"]["RA_dec"])
 
     encoder = model.encoder
     encoder.eval()
@@ -423,11 +423,15 @@ def run_post_evaluation(run_id):
                   )
     mb_test_pseudo = mb_test.with_pseudo_labels(model)
     mb_train_pseudo = mb_train.with_pseudo_labels(model)
+    mb_test_annotator = mb_test.with_annotator_labels(label_dist, RA_dec)
+    mb_train_annotator = mb_train.with_annotator_labels(label_dist, RA_dec)
     
     mb_test_labels = np.array(mb_test.targets)
     mb_test_preds = np.array(mb_test_pseudo.targets)
+    mb_test_annotations = np.array(mb_test_annotator.targets)
     mb_train_labels = np.array(mb_train.targets)
     mb_train_preds = np.array(mb_train_pseudo.targets)
+    mb_train_annotations = np.array(mb_train_annotator.targets)
 
     # Get umap embeddings for data with model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -438,16 +442,21 @@ def run_post_evaluation(run_id):
     # Put together data to plot
     plot_data_orig = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                       "labels": np.concatenate((mb_train_labels, mb_test_labels), axis=0),
-                      "title": "Annotator labels",
+                      "title": "MiraBest labels",
                       }
     plot_data_preds = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                        "labels": np.concatenate((mb_train_preds, mb_test_preds), axis=0),
                        "title": "Model predictions",
                        }
+    plot_data_annotator = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
+                           "labels": np.concatenate((mb_train_annotations, mb_test_annotations), axis=0),
+                           "title": "Annotator labels",
+                           }
 
     # Plot embedding
-    plot_embedding(save_dir + "/" + run_id + "_embedding_annotations.png", plot_data_orig)
+    plot_embedding(save_dir + "/" + run_id + "_embedding_MiraBest.png", plot_data_orig)
     plot_embedding(save_dir + "/" + run_id + "_embedding_predictions.png", plot_data_preds)
+    plot_embedding(save_dir + "/" + run_id + "_embedding_annotations.png", plot_data_annotator)
 
     # Test values of alpha
     test_alpha(model, label_dist, RA_dec, 1, save_dir + "/" + run_id + "_alphatest_m=1.png")

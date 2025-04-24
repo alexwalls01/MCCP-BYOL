@@ -387,7 +387,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
     def prepare_data(self):
         pass
 
-    def setup(self, stage=None):
+    def setup(self, stage=None, label_dist=None, RA_dec=None):
         if self.val_size != 0:
             data = MBFRConfident(self.path, aug_type="torchvision", train=True)
             idx = np.arange(len(data))
@@ -421,6 +421,9 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
             )
         # Train with annotator-derived labels
         else:
+            if self.label_dist is None or self.RA_dec is None:
+                self.label_dist = label_dist
+                self.RA_dec = RA_dec
             self.data["train"] = MBFRFull(
                 self.path,
                 aug_type="torchvision",
