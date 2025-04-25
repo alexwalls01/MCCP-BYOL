@@ -21,7 +21,7 @@ from paths import Path_Handler
 from config import load_config, update_config, load_config_finetune, load_config_evaluation
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
-from datasets import MBFRFull, RGZ108k
+from datasets import MBFRFull, RGZ108k, MBFRConfidentNoHybrids
 from finetuning import MLPHead, FineTune
 
 RUN_ID = os.environ.get("RUN_ID", "0")
@@ -436,8 +436,9 @@ def run_post_evaluation(run_id):
     config = byol_model.config
     config.update(finetune_config)
     mu, sig = config["data"]["mu"], config["data"]["sig"]
-    label_dist=np.load(config["conformal_prediction"]["label_dist"])
-    RA_dec=np.load(config["conformal_prediction"]["RA_dec"])
+    label_dist = np.load(config["conformal_prediction"]["label_dist"])
+    RA_dec = np.load(config["conformal_prediction"]["RA_dec"])
+    mb_conf_entropy = np.genfromtxt(config["conformal_prediction"]["hmc_data"])
 
     encoder = model.encoder
     encoder.eval()
@@ -488,10 +489,18 @@ def run_post_evaluation(run_id):
                   download=False,
                   aug_type="torchvision"
                   )
+    mb_conf = MBFRConfidentNoHybrids(root=paths["mb"],
+                                     train=False,
+                                     transform=transform,
+                                     download=False,
+                                     aug_type="torchvision"
+                                     )
     mb_test_pseudo = mb_test.with_pseudo_labels(model)
     mb_train_pseudo = mb_train.with_pseudo_labels(model)
+    mb_conf_pseudo = mb_conf.with_pseudo_labels(label_dist, RA_dec)
     mb_test_annotator = mb_test.with_annotator_labels(label_dist, RA_dec)
     mb_train_annotator = mb_train.with_annotator_labels(label_dist, RA_dec)
+    mb_conf_annotator = mb_conf.with_annotator_labels(label_dist, RA_dec)
     
     mb_test_labels = np.array(mb_test.targets)
     mb_test_preds = np.array(mb_test_pseudo.targets)
@@ -499,16 +508,21 @@ def run_post_evaluation(run_id):
     mb_train_labels = np.array(mb_train.targets)
     mb_train_preds = np.array(mb_train_pseudo.targets)
     mb_train_annotations = np.array(mb_train_annotator.targets)
+    mb_conf_labels = np.array(mb_conf.targets)
+    mb_conf_preds = np.array(mb_conf_pseudo.targets)
+    mb_conf_annotations = np.array(mb_conf_annotator.targets)
 
     # Get relevant uncertainty measures
     annotator_entropy_train = mb_train_annotator.get_annotator_entropy()
     annotator_entropy_test = mb_test_annotator.get_annotator_entropy()
+    annotator_entropy_conf = mb_conf_annotator.get_annotator_entropy()
 
     # Get umap embeddings for data with model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     mb_test_umap = reducer.transform(mb_test)
     mb_train_umap = reducer.transform(mb_train)
+    mb_conf_umap = reducer.transform(mb_conf)
 
     # Put together data to plot
     plot_data_orig = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
@@ -525,13 +539,23 @@ def run_post_evaluation(run_id):
                            "uncertainty": np.concatenate((annotator_entropy_train, annotator_entropy_test)),
                            "cbar_label": "Entropy of label distribution"
                            }
-
+    plot_data_annotator_conf = {"umap": mb_conf_umap,
+                                "labels": mb_conf_annotations,
+                                "uncertainty": annotator_entropy_conf,
+                                "cbar_label": "Entropy of label distribution"}
+    plot_data_hmc_conf = {"umap": mb_conf_umap,
+                                "labels": mb_conf_annotations,
+                                "uncertainty": mb_conf_entropy,
+                                "cbar_label": "Predictive entropy"}
+    
     # Plot embedding
     plot_embedding(save_dir + "/" + run_id + "_embedding_MiraBest.png", plot_data_orig)
     plot_embedding(save_dir + "/" + run_id + "_embedding_predictions.png", plot_data_preds)
     plot_embedding(save_dir + "/" + run_id + "_embedding_annotations.png", plot_data_annotator)
 
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_annotator_entropy.png", plot_data_annotator)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_annotator_entropy_conf.png", plot_data_annotator_conf)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_hmc_conf.png", plot_data_hmc_conf)
 
     # Test values of alpha
     mb_calibration = MBFRFull(root=paths["mb"],
@@ -548,10 +572,42 @@ def run_post_evaluation(run_id):
                               download=False,
                               aug_type="torchvision"
                               ).with_annotator_labels(label_dist, RA_dec)
+    mb_conf_annotated = mb_conf.with_annotator_labels(label_dist, RA_dec)
 
     test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
     test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
     test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
+    
+    # Monte Carlo conformal prediction
+    calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
+    threshold = calculate_threshold(calibration_set, 0.1)
+    predictions = create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec)
+    predictions_conf = create_prediction_sets(model, mb_conf_annotated, threshold, label_dist, RA_dec)
+    prediction_set_sizes = []
+    prediction_set_sizes_conf = []
+    for sample in predictions:
+        prediction_set_sizes.append(3 - sample["prediction_set"].count(0))
+    prediction_set_sizes = np.array(prediction_set_sizes)
+    for sample in predictions_conf:
+        prediction_set_sizes_conf.append(3 - sample["prediction_set"].count(0))
+    prediction_set_sizes_conf = np.array(prediction_set_sizes_conf)
+
+    plot_data_mccp = {"umap": mb_test_umap,
+                           "labels": mb_test_annotations,
+                           "title": "Annotator labels",
+                           "uncertainty": prediction_set_sizes,
+                           "cbar_label": "Prediction set size"
+                           }
+    plot_data_mccp_conf = {"umap": mb_conf_umap,
+                           "labels": mb_conf_annotations,
+                           "title": "Annotator labels",
+                           "uncertainty": prediction_set_sizes_conf,
+                           "cbar_label": "Prediction set size"
+                           }
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov90.png", plot_data_mccp)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov90.png", plot_data_mccp_conf)
+
+
 
 def main():
     run_post_evaluation(RUN_ID)
