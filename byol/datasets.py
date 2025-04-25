@@ -315,6 +315,13 @@ class MiraBest_F(data.Dataset):
             # Filename not found in the list.
             return None
     
+    def get_annotator_entropy(self):
+        entropy = []
+        for label_dist in self.label_dist:
+            entropy.append(np.sum(label_dist * np.log2(label_dist)))
+        return np.array(entropy)
+
+    
 
 class MBFRFull(MiraBest_F):
 

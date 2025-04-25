@@ -15,6 +15,7 @@ import torchvision.transforms as T
 import pickle
 import torch.nn.functional as F
 from matplotlib.lines import Line2D
+from matplotlib.cm import ScalarMappable
 
 from paths import Path_Handler
 from config import load_config, update_config, load_config_finetune, load_config_evaluation
@@ -318,20 +319,25 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     double = np.flip(np.array(double))
     full = np.flip(np.array(full))
     alphas = np.flip(alphas)
+
+    empty_percent = (empty * 100) / (len(prediction_sets))
+    single_percent = (single * 100) / (len(prediction_sets))
+    double_percent = (double * 100) / (len(prediction_sets))
+    full_percent = (full * 100) / (len(prediction_sets))
     
     if m > 1:
         alphas = 2 * alphas
         ax.set_xlabel(r'1 - 2$\alpha$', fontsize=18)
     else:
-        ax.set_xlabel(r'1 - $\alpha$')
-    ax.set_ylabel("Number of test samples", fontsize=18)
+        ax.set_xlabel(r'1 - $\alpha$', fontsize=18)
+    ax.set_ylabel("Percentage of test samples", fontsize=18)
     ax.tick_params(axis='both', which='major', labelsize=14)
     ax.tick_params(axis='both', which='minor', labelsize=14)
-    ax.plot(1-alphas, empty, label="Empty", c="#648FFF")
-    ax.plot(1-alphas, single, label="1", c="#785EF0")
-    ax.plot(1-alphas, double, label="2", c="#DC267F")
-    ax.plot(1-alphas, full, label="3", c="#FE6100")
-    ax.legend()
+    ax.plot(1-alphas, empty_percent, label="Empty", c="#648FFF")
+    ax.plot(1-alphas, single_percent, label="1", c="#DC267F")
+    ax.plot(1-alphas, double_percent, label="2", c="#FE6100")
+    ax.plot(1-alphas, full_percent, label="3", c="#FFB000")
+    ax.legend(fontsize=12, title="Prediction set size")
     ax.set_xlim(-0.025, 1.025)
     ax.set_box_aspect(1)
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
@@ -341,7 +347,7 @@ def plot_embedding(fig_path, plot_data):
 
     fig, ax = pylab.subplots(constrained_layout=True)
 
-    marker_size = 10
+    marker_size = 15
     xmin = np.min(plot_data["umap"][:, 0]) - 0.5
     xmax = np.max(plot_data["umap"][:, 0]) + 0.5
     ymin = np.min(plot_data["umap"][:, 1]) - 0.5
@@ -366,7 +372,7 @@ def plot_embedding(fig_path, plot_data):
         for code, lbl in cl_unique
     ]
     labels = [lbl for code, lbl in cl_unique]
-    ax.legend(handles, labels)
+    ax.legend(handles, labels, fontsize=14)
     ax.set_xlabel("UMAP x", fontsize=18)
     ax.set_ylabel("UMAP y", fontsize=18)
     ax.tick_params(axis='both', which='major', labelsize=14)
@@ -381,6 +387,35 @@ def plot_embedding(fig_path, plot_data):
     pylab.gca().set_aspect("equal", "datalim")
 
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
+
+def plot_embedding_uncertainty(fig_path, plot_data):
+
+    fig, ax = pylab.subplots(constrained_layout=True)
+
+    marker_size = 15
+    xmin = np.min(plot_data["umap"][:, 0]) - 0.5
+    xmax = np.max(plot_data["umap"][:, 0]) + 0.5
+    ymin = np.min(plot_data["umap"][:, 1]) - 0.5
+    ymax = np.max(plot_data["umap"][:, 1]) + 0.5
+
+    normalize = colors.Normalize(vmin=np.min(plot_data["uncertainty"]), vmax=np.max(plot_data["uncertainty"]))
+    sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["uncertainty"], cmap='viridis', norm=normalize, ec=None, alpha=0.5, s=marker_size)
+    fig.colorbar(sc, ax=ax, label=plot_data["cbar_label"])
+    ax.set_xlabel("UMAP x", fontsize=18)
+    ax.set_ylabel("UMAP y", fontsize=18)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.tick_params(axis='both', which='minor', labelsize=14)
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+    ax.set_aspect('equal', adjustable='box')
+    ax.set_box_aspect(1)
+    #ax.get_xaxis().set_visible(False)
+    #ax.get_yaxis().set_visible(False)
+
+    pylab.gca().set_aspect("equal", "datalim")
+
+    fig.savefig(fig_path, bbox_inches="tight", dpi=600)
+
 
 def run_post_evaluation(run_id):
 
@@ -465,6 +500,10 @@ def run_post_evaluation(run_id):
     mb_train_preds = np.array(mb_train_pseudo.targets)
     mb_train_annotations = np.array(mb_train_annotator.targets)
 
+    # Get relevant uncertainty measures
+    annotator_entropy_train = mb_train_annotator.get_annotator_entropy()
+    annotator_entropy_test = mb_test_annotator.get_annotator_entropy()
+
     # Get umap embeddings for data with model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -483,12 +522,16 @@ def run_post_evaluation(run_id):
     plot_data_annotator = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                            "labels": np.concatenate((mb_train_annotations, mb_test_annotations), axis=0),
                            "title": "Annotator labels",
+                           "uncertainty": np.concatenate((annotator_entropy_train, annotator_entropy_test)),
+                           "cbar_label": "Entropy of label distribution"
                            }
 
     # Plot embedding
     plot_embedding(save_dir + "/" + run_id + "_embedding_MiraBest.png", plot_data_orig)
     plot_embedding(save_dir + "/" + run_id + "_embedding_predictions.png", plot_data_preds)
     plot_embedding(save_dir + "/" + run_id + "_embedding_annotations.png", plot_data_annotator)
+
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_annotator_entropy.png", plot_data_annotator)
 
     # Test values of alpha
     mb_calibration = MBFRFull(root=paths["mb"],
