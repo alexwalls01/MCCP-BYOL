@@ -442,7 +442,7 @@ def run_post_evaluation(run_id):
     mu, sig = config["data"]["mu"], config["data"]["sig"]
     label_dist = np.load(config["conformal_prediction"]["label_dist"])
     RA_dec = np.load(config["conformal_prediction"]["RA_dec"])
-    mb_conf_entropy = np.genfromtxt(config["conformal_prediction"]["hmc_data"])
+    mb_conf_entropy = np.genfromtxt(config["conformal_prediction"]["hmc_data"])[:,1]
 
     encoder = model.encoder
     encoder.eval()
@@ -544,7 +544,7 @@ def run_post_evaluation(run_id):
     plot_data_annotator_conf = {"umap": mb_conf_umap,
                                 "labels": mb_conf_annotations,
                                 "uncertainty": annotator_entropy_conf,
-                                "cbar_label": "Entropy of label distribution (normalized)",
+                                "cbar_label": "Entropy of label distribution",
                                 "cbar_ticks": None}
     plot_data_hmc_conf = {"umap": mb_conf_umap,
                                 "labels": mb_conf_annotations,
