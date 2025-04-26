@@ -249,7 +249,7 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec, stage)
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     prediction_loader = load_dataloader(stage, label_dist=label_dist, RA_dec=RA_dec)
     batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
-    if len(batch_predictions) == 2:
+    if stage == "test":
         # Because the test set has confident and uncertain subsets
         batch_predictions_1 = batch_predictions[0]
         batch_predictions_2 = batch_predictions[1]
