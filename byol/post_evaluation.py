@@ -549,9 +549,9 @@ def violin_plot(fig_path, entropy, prediction_set_size, ylabel):
     ax.tick_params(axis='both', which='major', labelsize=14)
     ax.tick_params(axis='both', which='minor', labelsize=14)
     ax.yaxis.grid(True)
-    ax.set_aspect('equal', adjustable='box')
+    #ax.set_aspect('equal', adjustable='box')
     ax.set_box_aspect(1)
-    pylab.gca().set_aspect("equal", "datalim")
+    #pylab.gca().set_aspect("equal", "datalim")
     ax.set_ylim(-0.1, 1.1)
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
@@ -566,9 +566,9 @@ def scatter_plot(fig_path, entropy, scores, ylabel):
     ax.tick_params(axis='both', which='minor', labelsize=14)
     ax.set_xlim(np.min(scores)-0.05, 0.45)
     ax.set_ylim(np.min(entropy)-0.05, np.max(entropy)+0.05)
-    ax.set_aspect('equal', adjustable='box')
+    #ax.set_aspect('equal', adjustable='box')
     ax.set_box_aspect(1)
-    pylab.gca().set_aspect("equal", "datalim")
+    #pylab.gca().set_aspect("equal", "datalim")
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
 
@@ -770,7 +770,7 @@ def run_post_evaluation(run_id):
                            "labels": mb_conf_annotations,
                            "title": "Annotator labels",
                            "uncertainty": test_conf_scores,
-                           "cbar_label": r'$\alpha',
+                           "cbar_label": r'$\alpha$',
                            "cbar_ticks": None
                            }
     
