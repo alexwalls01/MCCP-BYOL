@@ -457,7 +457,6 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 self.path,
                 aug_type="torchvision",
                 train=False,
-                calibration=True,
                 transform=self.test_transform,
             ).with_annotator_labels(self.label_dist, self.RA_dec)
 
