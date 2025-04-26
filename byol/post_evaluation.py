@@ -775,7 +775,7 @@ def run_post_evaluation(run_id):
     FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 100, label_dist, RA_dec)
     test_scores = 2 * calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
     test_conf_scores = 2 * calculate_class_conditional_scores(model, mb_conf_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test_conf")
-    all_scores = np.concatenate(test_scores, test_conf_scores)
+    all_scores = np.concatenate((test_scores, test_conf_scores), axis=0)
 
     plot_data_conditional = {"umap": mb_test_umap,
                            "labels": mb_test_annotations,
