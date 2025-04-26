@@ -722,7 +722,7 @@ def run_post_evaluation(run_id):
                               ).with_annotator_labels(label_dist, RA_dec)
 
     calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
-    threshold = calculate_threshold(calibration_set, 0.15)
+    threshold = calculate_threshold(calibration_set, 0.25)
     predictions = create_prediction_sets(model, mb_test_annotator, threshold, label_dist, RA_dec, "test")
     predictions_conf = create_prediction_sets(model, mb_conf_annotator, threshold, label_dist, RA_dec, "test_conf")
     prediction_set_sizes = []
@@ -748,11 +748,11 @@ def run_post_evaluation(run_id):
                            "cbar_label": "Prediction set size",
                            "cbar_ticks": [1, 2, 3]
                            }
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov85.png", plot_data_mccp)
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov85.png", plot_data_mccp_conf)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov75.png", plot_data_mccp)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov75.png", plot_data_mccp_conf)
 
-    violin_plot(save_dir + "/" + run_id + "_violin_PE_cov85.png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
-    violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov85.png", annotator_entropy_test, prediction_set_sizes, "Entropy of label distribution")
+    violin_plot(save_dir + "/" + run_id + "_violin_PE_cov75.png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
+    violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov75.png", annotator_entropy_test, prediction_set_sizes, "Entropy of label distribution")
 
     # Class-conditional conformal prediction
     FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 1, label_dist, RA_dec)
