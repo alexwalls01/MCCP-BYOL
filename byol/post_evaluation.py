@@ -501,16 +501,22 @@ def plot_embedding(fig_path, plot_data):
 
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
-def plot_embedding_uncertainty(fig_path, plot_data):
+def plot_embedding_uncertainty(fig_path, plot_data, xlims=None, ylims=None):
 
     fig, ax = pylab.subplots(constrained_layout=True)
 
     marker_size = 15
-    xmin = np.min(plot_data["umap"][:, 0]) - 0.5
-    xmax = np.max(plot_data["umap"][:, 0]) + 0.5
-    ymin = np.min(plot_data["umap"][:, 1]) - 0.5
-    ymax = np.max(plot_data["umap"][:, 1]) + 0.5
-
+    if xlims is None:
+        xmin = np.min(plot_data["umap"][:, 0]) - 0.5
+        xmax = np.max(plot_data["umap"][:, 0]) + 0.5
+        ymin = np.min(plot_data["umap"][:, 1]) - 0.5
+        ymax = np.max(plot_data["umap"][:, 1]) + 0.5
+    else:
+        xmin = xlims[0]
+        xmax = xlims[1]
+        ymin = ylims[0]
+        ymax = ylims[1]
+        
     if plot_data["cbar_lims"] is not None:
         normalize = colors.Normalize(vmin=plot_data["cbar_lims"][0], vmax=plot_data["cbar_lims"][1])
     else:
@@ -567,7 +573,7 @@ def scatter_plot(fig_path, entropy, scores, ylabel):
     ax.set_ylabel(ylabel, fontsize=18)
     ax.tick_params(axis='both', which='major', labelsize=14)
     ax.tick_params(axis='both', which='minor', labelsize=14)
-    ax.set_xlim(np.min(scores)-0.05, 0.3+0.05)
+    ax.set_xlim(np.min(scores)-0.05, np.max(scores)+0.05)
     ax.set_ylim(np.min(entropy)-0.05, np.max(entropy)+0.05)
     #ax.set_aspect('equal', adjustable='box')
     ax.set_box_aspect(1)
@@ -786,9 +792,10 @@ def run_post_evaluation(run_id):
                            "cbar_ticks": None,
                            "cbar_lims": [np.min(np.concatenate(test_scores, test_conf_scores)), np.max(np.concatenate(test_scores, test_conf_scores))]
                            }
-    
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional.png", plot_data_conditional)
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional_conf.png", plot_data_conditional_conf)
+    xlims = [np.min(np.vstack((mb_test_umap, mb_conf_umap))[:,0]), np.max(np.vstack((mb_test_umap, mb_conf_umap))[:,0])]
+    ylims = [np.min(np.vstack((mb_test_umap, mb_conf_umap))[:,1]), np.max(np.vstack((mb_test_umap, mb_conf_umap))[:,1])]
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional.png", plot_data_conditional, xlims=xlims, ylims=ylims)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional_conf.png", plot_data_conditional_conf, xlims=xlims, ylims=ylims)
 
     scatter_plot(save_dir + "/" + run_id + "_scatter.png", annotator_entropy_test, test_scores, "Entropy of label distribution")
     scatter_plot(save_dir + "/" + run_id + "_scatter_conf.png", mb_conf_entropy, test_conf_scores, "Predictive entropy")
