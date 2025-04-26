@@ -234,6 +234,50 @@ def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec):
 
     return calibration_set
 
+def create_class_conditional_calibration_sets(model, mb_calibration, m, label_dist, RA_dec):
+
+    trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
+    prediction_loader = load_dataloader("calibration", label_dist=label_dist, RA_dec=RA_dec)
+    batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
+
+    predictions = []
+    for batch in batch_predictions:
+        # Ensure logits are in a list format.
+        logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+        for filename, logit in zip(batch["filenames"], logits_list):
+            predictions.append({"filename": filename, "logits": logit})
+    
+    for sample in predictions:
+        filename = sample["filename"]
+        # Extract the target class using the method provided by MBFRFull.
+        target = mb_calibration.get_target(filename)
+        dist = mb_calibration.get_dist(filename)
+        sample["class"] = target
+        sample["label_dist"] = dist
+
+    calibration_set = []
+    for sample in predictions:
+        calibration_set.append(sample)
+        for i in range(m):
+            # Sample new label according to label distribution
+            sampled_target = np.random.choice([0, 1, 2], p=sample["label_dist"])
+            duplicate_sample = sample
+            duplicate_sample["class"] = sampled_target
+            calibration_set.append(duplicate_sample)
+    
+    FRI_set = []
+    FRII_set = []
+    hybrid_set = []
+    for sample in calibration_set:
+        if sample["class"] == 0:
+            FRI_set.append(sample)
+        elif sample["class"] == 1:
+            FRII_set.append(sample)
+        else:
+            hybrid_set.append(sample)
+
+    return FRI_set, FRII_set, hybrid_set
+
 def calculate_threshold(calibration_set, alpha):
     non_conformity_scores = []
     for sample in calibration_set:
@@ -274,7 +318,6 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec, stage)
 
     for sample in predictions:
         filename = sample["filename"]
-        # Extract the target class using the method provided by MBFRFull.
         target = mb_test.get_target(filename)
         dist = mb_test.get_dist(filename)
         sample["class"] = target
@@ -291,6 +334,65 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec, stage)
         sample["prediction_set"] = prediction_set
     
     return predictions
+
+def calculate_class_conditional_scores(model, mb_test, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, stage):
+    trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
+    prediction_loader = load_dataloader(stage, label_dist=label_dist, RA_dec=RA_dec)
+    batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
+    if stage == "test":
+        # Because the test set has confident and uncertain subsets
+        batch_predictions_1 = batch_predictions[0]
+        batch_predictions_2 = batch_predictions[1]
+        predictions = []
+        for batch in batch_predictions_1:
+            # Ensure logits are in a list format
+            logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+            for filename, logit in zip(batch["filenames"], logits_list):
+                predictions.append({"filename": filename, "logits": logit})
+        for batch in batch_predictions_2:
+            # Ensure logits are in a list format
+            logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+            for filename, logit in zip(batch["filenames"], logits_list):
+                predictions.append({"filename": filename, "logits": logit})
+    else:
+        predictions = []
+        for batch in batch_predictions:
+            # Ensure logits are in a list format
+            logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+            for filename, logit in zip(batch["filenames"], logits_list):
+                predictions.append({"filename": filename, "logits": logit})
+    
+    scores = []
+    for sample in predictions:
+        filename = sample["filename"]
+        sample["class"] = mb_test.get_target(filename)
+        sample["label_dist"] = mb_test.get_dist(filename)
+
+        if np.argmax(sample["class"]) == 0:
+            calibration_set = FRI_set
+        elif np.argmax(sample["class"]) == 1:
+            calibration_set = FRII_set
+        else:
+            calibration_set = hybrid_set
+
+        find_score = True
+        alphas = np.arange(0, 1, 0.01)
+        idx = 0
+        while find_score is True:
+            threshold = calculate_threshold(calibration_set, alphas[idx])
+            softmax = F.softmax(torch.tensor(sample["logits"]), dim=0).tolist()
+            prediction_set = []
+            for i in range(3):
+                if 1 - softmax[i] <= threshold:
+                    prediction_set.append(softmax[i])
+                else:
+                    prediction_set.append(0)
+            size = 3 - prediction_set.count(0)
+            if size == 1:
+                find_score = False
+            idx += 1
+        scores.append(alphas[idx-1])
+    return np.array(scores)
 
 def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     if m == 1:
@@ -444,10 +546,29 @@ def violin_plot(fig_path, entropy, prediction_set_size, ylabel):
     ax.set_ylabel(ylabel, fontsize=18)
     ax.tick_params(axis='both', which='major', labelsize=14)
     ax.tick_params(axis='both', which='minor', labelsize=14)
+    ax.set_ylim(-0.1, 1.1)
+    ax.yaxis.grid(True)
     ax.set_aspect('equal', adjustable='box')
     ax.set_box_aspect(1)
     pylab.gca().set_aspect("equal", "datalim")
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
+
+def scatter_plot(fig_path, entropy, scores, ylabel):
+
+    fig, ax = pylab.subplots(constrained_layout=True)
+
+    ax.scatter(scores, entropy)
+    ax.set_xlabel(r'$\alpha$', fontsize=18)
+    ax.set_ylabel(ylabel, fontsize=18)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.tick_params(axis='both', which='minor', labelsize=14)
+    ax.set_xlim(np.min(scores)-0.05, 1)
+    ax.set_ylim(np.min(entropy)-0.05, np.max(entropy)+0.05)
+    ax.set_aspect('equal', adjustable='box')
+    ax.set_box_aspect(1)
+    pylab.gca().set_aspect("equal", "datalim")
+    fig.savefig(fig_path, bbox_inches="tight", dpi=600)
+
 
 def run_post_evaluation(run_id):
 
@@ -599,7 +720,7 @@ def run_post_evaluation(run_id):
                               ).with_annotator_labels(label_dist, RA_dec)
 
     calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
-    threshold = calculate_threshold(calibration_set, 0.15)
+    threshold = calculate_threshold(calibration_set, 0.1)
     predictions = create_prediction_sets(model, mb_test_annotator, threshold, label_dist, RA_dec, "test")
     predictions_conf = create_prediction_sets(model, mb_conf_annotator, threshold, label_dist, RA_dec, "test_conf")
     prediction_set_sizes = []
@@ -625,17 +746,43 @@ def run_post_evaluation(run_id):
                            "cbar_label": "Prediction set size",
                            "cbar_ticks": [1, 2, 3]
                            }
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov85.png", plot_data_mccp)
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov85.png", plot_data_mccp_conf)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov90.png", plot_data_mccp)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov90.png", plot_data_mccp_conf)
 
-    violin_plot(save_dir + "/" + run_id + "_violin_PE_cov85.png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
-    violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov85.png", annotator_entropy_test, prediction_set_sizes, "Entropy of label distribution")
+    violin_plot(save_dir + "/" + run_id + "_violin_PE_cov90.png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
+    violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov90.png", annotator_entropy_test, prediction_set_sizes, "Entropy of label distribution")
+
+    # Class-conditional conformal prediction
+    FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 1, label_dist, RA_dec)
+    test_scores = calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
+    test_conf_scores = calculate_class_conditional_scores(model, mb_conf_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test_conf")
+
+    plot_data_conditional = {"umap": mb_test_umap,
+                           "labels": mb_test_annotations,
+                           "title": "Annotator labels",
+                           "uncertainty": test_scores,
+                           "cbar_label": r'$\alpha$',
+                           "cbar_ticks": None
+                           }
+    plot_data_conditional_conf = {"umap": mb_conf_umap,
+                           "labels": mb_conf_annotations,
+                           "title": "Annotator labels",
+                           "uncertainty": test_conf_scores,
+                           "cbar_label": r'$\alpha',
+                           "cbar_ticks": None
+                           }
+    
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional.png", plot_data_conditional)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional_conf.png", plot_data_conditional_conf)
+
+    scatter_plot(save_dir + "/" + run_id + "_scatter.png", annotator_entropy_test, test_scores, "Entropy of label distribution")
+    scatter_plot(save_dir + "/" + run_id + "_scatter_conf.png", mb_conf_entropy, test_conf_scores, "Predictive entropy")
 
     # Test values of alpha
 
-    test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
-    test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
-    test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
+    #test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
+    #test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
+    #test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
 
 
 def main():
