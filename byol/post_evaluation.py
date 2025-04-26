@@ -497,7 +497,7 @@ def run_post_evaluation(run_id):
                                      )
     mb_test_pseudo = mb_test.with_pseudo_labels(model)
     mb_train_pseudo = mb_train.with_pseudo_labels(model)
-    mb_conf_pseudo = mb_conf.with_pseudo_labels(label_dist, RA_dec)
+    mb_conf_pseudo = mb_conf.with_pseudo_labels(model)
     mb_test_annotator = mb_test.with_annotator_labels(label_dist, RA_dec)
     mb_train_annotator = mb_train.with_annotator_labels(label_dist, RA_dec)
     mb_conf_annotator = mb_conf.with_annotator_labels(label_dist, RA_dec)
