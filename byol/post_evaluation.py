@@ -442,7 +442,7 @@ def run_post_evaluation(run_id):
     mu, sig = config["data"]["mu"], config["data"]["sig"]
     label_dist = np.load(config["conformal_prediction"]["label_dist"])
     RA_dec = np.load(config["conformal_prediction"]["RA_dec"])
-    mb_conf_entropy = np.genfromtxt(config["conformal_prediction"]["hmc_data"])[:,1]
+    mb_conf_entropy = np.genfromtxt(config["conformal_prediction"]["hmc_data"], delimiter=',', skip_header=1)[:,1]
 
     encoder = model.encoder
     encoder.eval()
