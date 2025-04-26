@@ -11,7 +11,7 @@ from torch.utils.data import Subset
 
 from byol.utilities import rgz_cut, train_val_test_split
 from byol.paths import Path_Handler
-from byol.datasets import MBFRConfident, MBFRUncertain, RGZ108k, MBFRFull
+from byol.datasets import MBFRConfident, MBFRUncertain, RGZ108k, MBFRFull, MBFRConfidentNoHybrids
 
 
 class SimpleView(nn.Module):
@@ -122,8 +122,8 @@ class Base_DataModule(pl.LightningDataModule):
             )
             for _, data in self.data["test"]
         ]
-        return loaders
-
+        return  loaders
+    
 
 class RGZ_DataModule(Base_DataModule):
     def __init__(
@@ -330,6 +330,16 @@ class FineTuning_DataModule(pl.LightningDataModule):
             for data in self.data["test"].values()
         ]
         return loaders
+    
+    def test_conf_dataloader(self):
+        loader = DataLoader(
+            self.data["test_conf"],
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            prefetch_factor=self.prefetch_factor,
+            pin_memory=self.pin_memory,
+        )
+        return loader
 
 
 class RGZ_DataModule_Finetune(FineTuning_DataModule):
@@ -437,6 +447,13 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 transform=self.test_transform,
             ).with_annotator_labels(self.label_dist, self.RA_dec)
             self.data["calibration"] = MBFRFull(
+                self.path,
+                aug_type="torchvision",
+                train=False,
+                calibration=True,
+                transform=self.test_transform,
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
+            self.data["test_conf"] = MBFRConfidentNoHybrids(
                 self.path,
                 aug_type="torchvision",
                 train=False,

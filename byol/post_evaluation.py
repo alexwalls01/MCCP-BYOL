@@ -195,6 +195,8 @@ def load_dataloader(stage, label_dist=None, RA_dec=None):
         dataloader = datamodule.val_dataloader()
     elif stage == "calibration":
         dataloader = datamodule.calibration_dataloader()
+    elif stage == "test_conf":
+        dataloader = datamodule.test_conf_dataloader()
     else:
         raise ValueError("Unsupported dataloader stage.")
     return dataloader
@@ -243,25 +245,32 @@ def calculate_threshold(calibration_set, alpha):
     threshold = np.quantile(non_conformity_scores, 1 - alpha)
     return threshold
 
-def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec):
+def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec, stage):
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
-    prediction_loader = load_dataloader("test", label_dist=label_dist, RA_dec=RA_dec)
+    prediction_loader = load_dataloader(stage, label_dist=label_dist, RA_dec=RA_dec)
     batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
-    # Because the test set has confident and uncertain subsets
-    batch_predictions_1 = batch_predictions[0]
-    batch_predictions_2 = batch_predictions[1]
-
-    predictions = []
-    for batch in batch_predictions_1:
-        # Ensure logits are in a list format.
-        logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
-        for filename, logit in zip(batch["filenames"], logits_list):
-            predictions.append({"filename": filename, "logits": logit})
-    for batch in batch_predictions_2:
-        # Ensure logits are in a list format.
-        logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
-        for filename, logit in zip(batch["filenames"], logits_list):
-            predictions.append({"filename": filename, "logits": logit})
+    if len(batch_predictions) == 2:
+        # Because the test set has confident and uncertain subsets
+        batch_predictions_1 = batch_predictions[0]
+        batch_predictions_2 = batch_predictions[1]
+        predictions = []
+        for batch in batch_predictions_1:
+            # Ensure logits are in a list format.
+            logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+            for filename, logit in zip(batch["filenames"], logits_list):
+                predictions.append({"filename": filename, "logits": logit})
+        for batch in batch_predictions_2:
+            # Ensure logits are in a list format.
+            logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+            for filename, logit in zip(batch["filenames"], logits_list):
+                predictions.append({"filename": filename, "logits": logit})
+    else:
+        predictions = []
+        for batch in batch_predictions:
+            # Ensure logits are in a list format.
+            logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+            for filename, logit in zip(batch["filenames"], logits_list):
+                predictions.append({"filename": filename, "logits": logit})
 
     for sample in predictions:
         filename = sample["filename"]
@@ -299,7 +308,7 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     for alpha in alphas:
 
         threshold = calculate_threshold(calibration_set, alpha)
-        predictions = create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec)
+        predictions = create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec, "test")
 
         prediction_sets = []
         for sample in predictions:
@@ -591,8 +600,8 @@ def run_post_evaluation(run_id):
 
     calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
     threshold = calculate_threshold(calibration_set, 0.15)
-    predictions = create_prediction_sets(model, mb_test_annotator, threshold, label_dist, RA_dec)
-    predictions_conf = create_prediction_sets(model, mb_conf_annotator, threshold, label_dist, RA_dec)
+    predictions = create_prediction_sets(model, mb_test_annotator, threshold, label_dist, RA_dec, "test")
+    predictions_conf = create_prediction_sets(model, mb_conf_annotator, threshold, label_dist, RA_dec, "test_conf")
     prediction_set_sizes = []
     prediction_set_sizes_conf = []
     for sample in predictions:
