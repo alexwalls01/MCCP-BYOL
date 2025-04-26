@@ -376,7 +376,7 @@ def calculate_class_conditional_scores(model, mb_test, FRI_set, FRII_set, hybrid
             calibration_set = hybrid_set
 
         find_score = True
-        alphas = np.arange(0, 1, 0.01)
+        alphas = np.arange(0, 1.01, 0.01)
         idx = -1
         while find_score is True:
             idx += 1
@@ -389,7 +389,7 @@ def calculate_class_conditional_scores(model, mb_test, FRI_set, FRII_set, hybrid
                 else:
                     prediction_set.append(0)
             size = 3 - prediction_set.count(0)
-            if size == 0:
+            if size == 1:
                 find_score = False
             if idx == len(alphas) - 1:
                 find_score = False
@@ -511,7 +511,10 @@ def plot_embedding_uncertainty(fig_path, plot_data):
     ymin = np.min(plot_data["umap"][:, 1]) - 0.5
     ymax = np.max(plot_data["umap"][:, 1]) + 0.5
 
-    normalize = colors.Normalize(vmin=np.min(plot_data["uncertainty"]), vmax=np.max(plot_data["uncertainty"]))
+    if plot_data["cbar_lims"] is not None:
+        normalize = colors.Normalize(vmin=plot_data["cbar_lims"][0], vmax=plot_data["cbar_lims"][1])
+    else:
+        normalize = colors.Normalize(vmin=np.min(plot_data["uncertainty"]), vmax=np.max(plot_data["uncertainty"]))
     sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["uncertainty"], cmap='viridis', norm=normalize, ec=None, alpha=0.75, s=marker_size)
     cbar = fig.colorbar(sc, ax=ax)
     cbar.set_label(label=plot_data["cbar_label"], size=18)
@@ -564,7 +567,7 @@ def scatter_plot(fig_path, entropy, scores, ylabel):
     ax.set_ylabel(ylabel, fontsize=18)
     ax.tick_params(axis='both', which='major', labelsize=14)
     ax.tick_params(axis='both', which='minor', labelsize=14)
-    ax.set_xlim(np.min(scores)-0.05, np.max(scores)+0.05)
+    ax.set_xlim(np.min(scores)-0.05, 0.3+0.05)
     ax.set_ylim(np.min(entropy)-0.05, np.max(entropy)+0.05)
     #ax.set_aspect('equal', adjustable='box')
     ax.set_box_aspect(1)
@@ -690,18 +693,23 @@ def run_post_evaluation(run_id):
                            "labels": np.concatenate((mb_train_annotations, mb_test_annotations), axis=0),
                            "uncertainty": np.concatenate((annotator_entropy_train, annotator_entropy_test)),
                            "cbar_label": "Entropy of label distribution",
-                           "cbar_ticks": None
+                           "cbar_ticks": None,
+                           "cbar_lims": None
                            }
     plot_data_annotator_conf = {"umap": mb_conf_umap,
                                 "labels": mb_conf_annotations,
                                 "uncertainty": annotator_entropy_conf,
                                 "cbar_label": "Entropy of label distribution",
-                                "cbar_ticks": None}
+                                "cbar_ticks": None,
+                                "cbar_lims": None
+                                }
     plot_data_hmc_conf = {"umap": mb_conf_umap,
                                 "labels": mb_conf_annotations,
                                 "uncertainty": mb_conf_entropy,
                                 "cbar_label": "Predictive entropy",
-                                "cbar_ticks": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]}
+                                "cbar_ticks": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                                "cbar_lims": None
+                                }
     
     # Plot embedding
     plot_embedding(save_dir + "/" + run_id + "_embedding_MiraBest.png", plot_data_orig)
@@ -720,7 +728,7 @@ def run_post_evaluation(run_id):
                               download=False,
                               aug_type="torchvision"
                               ).with_annotator_labels(label_dist, RA_dec)
-    alphas = [0.02, 0.05, 0.1]
+    alphas = [0.05, 0.1, 0.15, 0.2]
     for alpha in alphas:
         calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
         threshold = calculate_threshold(calibration_set, alpha)
@@ -740,39 +748,43 @@ def run_post_evaluation(run_id):
                             "title": "Annotator labels",
                             "uncertainty": prediction_set_sizes,
                             "cbar_label": "Prediction set size",
-                            "cbar_ticks": [1, 2, 3]
+                            "cbar_ticks": [1, 2, 3],
+                            "cbar_lims": None
                             }
         plot_data_mccp_conf = {"umap": mb_conf_umap,
                             "labels": mb_conf_annotations,
                             "title": "Annotator labels",
                             "uncertainty": prediction_set_sizes_conf,
                             "cbar_label": "Prediction set size",
-                            "cbar_ticks": [1, 2, 3]
+                            "cbar_ticks": [1, 2, 3],
+                            "cbar_lims": None
                             }
         plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov" + str((1-alpha)*100) + ".png", plot_data_mccp)
         plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov"  + str((1-alpha)*100) + ".png", plot_data_mccp_conf)
 
-        #violin_plot(save_dir + "/" + run_id + "_violin_PE_cov"  + str((1-alpha)*100) + ".png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
-        #violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov" +  str((1-alpha)*100) + ".png", annotator_entropy_test, prediction_set_sizes, "Entropy of label distribution")
+        violin_plot(save_dir + "/" + run_id + "_violin_PE_cov"  + str((1-alpha)*100) + ".png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
+        violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov" +  str((1-alpha)*100) + ".png", annotator_entropy_test, prediction_set_sizes, "Entropy of label distribution")
 
     # Class-conditional conformal prediction
-    FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 1, label_dist, RA_dec)
-    test_scores = calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
-    test_conf_scores = calculate_class_conditional_scores(model, mb_conf_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test_conf")
+    FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 100, label_dist, RA_dec)
+    test_scores = 2 * calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
+    test_conf_scores = 2 * calculate_class_conditional_scores(model, mb_conf_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test_conf")
 
     plot_data_conditional = {"umap": mb_test_umap,
                            "labels": mb_test_annotations,
                            "title": "Annotator labels",
                            "uncertainty": test_scores,
                            "cbar_label": r'$\alpha$',
-                           "cbar_ticks": None
+                           "cbar_ticks": None,
+                           "cbar_lims": [np.min(np.concatenate(test_scores, test_conf_scores)), np.max(np.concatenate(test_scores, test_conf_scores))]
                            }
     plot_data_conditional_conf = {"umap": mb_conf_umap,
                            "labels": mb_conf_annotations,
                            "title": "Annotator labels",
                            "uncertainty": test_conf_scores,
                            "cbar_label": r'$\alpha$',
-                           "cbar_ticks": None
+                           "cbar_ticks": None,
+                           "cbar_lims": [np.min(np.concatenate(test_scores, test_conf_scores)), np.max(np.concatenate(test_scores, test_conf_scores))]
                            }
     
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional.png", plot_data_conditional)
