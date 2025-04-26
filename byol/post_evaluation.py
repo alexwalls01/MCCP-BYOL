@@ -337,7 +337,7 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     ax.plot(1-alphas, single_percent, label="1", c="#DC267F")
     ax.plot(1-alphas, double_percent, label="2", c="#FE6100")
     ax.plot(1-alphas, full_percent, label="3", c="#FFB000")
-    ax.legend(fontsize=12, title="Prediction set size")
+    ax.legend(title="Prediction set size")
     ax.set_xlim(-0.025, 1.025)
     ax.set_box_aspect(1)
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
@@ -399,7 +399,7 @@ def plot_embedding_uncertainty(fig_path, plot_data):
     ymax = np.max(plot_data["umap"][:, 1]) + 0.5
 
     normalize = colors.Normalize(vmin=np.min(plot_data["uncertainty"]), vmax=np.max(plot_data["uncertainty"]))
-    sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["uncertainty"], cmap='viridis', norm=normalize, ec=None, alpha=0.5, s=marker_size)
+    sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["uncertainty"], cmap='viridis', norm=normalize, ec=None, alpha=0.75, s=marker_size)
     cbar = fig.colorbar(sc, ax=ax)
     cbar.set_label(label=plot_data["cbar_label"], size=18)
     if plot_data["cbar_ticks"] is not None:
@@ -420,6 +420,25 @@ def plot_embedding_uncertainty(fig_path, plot_data):
 
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
+def violin_plot(fig_path, entropy, prediction_set_size, ylabel):
+
+    fig, ax = pylab.subplots(constrained_layout=True)
+
+    size_one_indices = [i for i, val in enumerate(prediction_set_size) if val == 1]
+    size_two_indices = [i for i, val in enumerate(prediction_set_size) if val == 2]
+    size_three_indices = [i for i, val in enumerate(prediction_set_size) if val == 3]
+
+    plot_data = [entropy[size_one_indices], entropy[size_two_indices], entropy[size_three_indices]]
+    ax.violinplot(plot_data, showmeans=False, showmedians=True)
+    ax.set_xlabel("Prediction set size", fontsize=18)
+    ax.set_xticks([y + 1 for y in range(len(plot_data))], labels=['1', '2', '3'])
+    ax.set_ylabel(ylabel, fontsize=18)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.tick_params(axis='both', which='minor', labelsize=14)
+    ax.set_aspect('equal', adjustable='box')
+    ax.set_box_aspect(1)
+    pylab.gca().set_aspect("equal", "datalim")
+    fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
 def run_post_evaluation(run_id):
 
@@ -550,7 +569,7 @@ def run_post_evaluation(run_id):
                                 "labels": mb_conf_annotations,
                                 "uncertainty": mb_conf_entropy,
                                 "cbar_label": "Predictive entropy",
-                                "cbar_ticks": None}
+                                "cbar_ticks": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]}
     
     # Plot embedding
     plot_embedding(save_dir + "/" + run_id + "_embedding_MiraBest.png", plot_data_orig)
@@ -561,7 +580,8 @@ def run_post_evaluation(run_id):
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_annotator_entropy_conf.png", plot_data_annotator_conf)
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_hmc_conf.png", plot_data_hmc_conf)
 
-    # Test values of alpha
+    # Monte Carlo conformal prediction
+    mb_conf_annotated = mb_conf.with_annotator_labels(label_dist, RA_dec)
     mb_calibration = MBFRFull(root=paths["mb"],
                               train=False,
                               calibration=True,
@@ -574,17 +594,11 @@ def run_post_evaluation(run_id):
                               train=False,
                               transform=transform,
                               download=False,
-                              aug_type="torchvision"
+                              aug_type="torchvision",
                               ).with_annotator_labels(label_dist, RA_dec)
-    mb_conf_annotated = mb_conf.with_annotator_labels(label_dist, RA_dec)
 
-    test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
-    test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
-    test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
-    
-    # Monte Carlo conformal prediction
     calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
-    threshold = calculate_threshold(calibration_set, 0.1)
+    threshold = calculate_threshold(calibration_set, 0.15)
     predictions = create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec)
     predictions_conf = create_prediction_sets(model, mb_conf_annotated, threshold, label_dist, RA_dec)
     prediction_set_sizes = []
@@ -601,18 +615,26 @@ def run_post_evaluation(run_id):
                            "title": "Annotator labels",
                            "uncertainty": prediction_set_sizes,
                            "cbar_label": "Prediction set size",
-                           "cbar_ticks": [0, 1, 2, 3]
+                           "cbar_ticks": [1, 2, 3]
                            }
     plot_data_mccp_conf = {"umap": mb_conf_umap,
                            "labels": mb_conf_annotations,
                            "title": "Annotator labels",
                            "uncertainty": prediction_set_sizes_conf,
                            "cbar_label": "Prediction set size",
-                           "cbar_ticks": [0, 1, 2, 3]
+                           "cbar_ticks": [1, 2, 3]
                            }
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov90.png", plot_data_mccp)
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov90.png", plot_data_mccp_conf)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov85.png", plot_data_mccp)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov85.png", plot_data_mccp_conf)
 
+    violin_plot(save_dir + "/" + run_id + "_violin_PE_cov85.png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
+    violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov85.png", annotator_entropy_test, prediction_set_sizes, "Entropy of label distribution")
+
+    # Test values of alpha
+
+    test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
+    test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
+    test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
 
 
 def main():
