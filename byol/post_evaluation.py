@@ -389,7 +389,7 @@ def calculate_class_conditional_scores(model, mb_test, FRI_set, FRII_set, hybrid
                 else:
                     prediction_set.append(0)
             size = 3 - prediction_set.count(0)
-            if size == 1:
+            if size == 0:
                 find_score = False
             if idx == len(alphas) - 1:
                 find_score = False
@@ -564,7 +564,7 @@ def scatter_plot(fig_path, entropy, scores, ylabel):
     ax.set_ylabel(ylabel, fontsize=18)
     ax.tick_params(axis='both', which='major', labelsize=14)
     ax.tick_params(axis='both', which='minor', labelsize=14)
-    ax.set_xlim(np.min(scores)-0.05, 0.45)
+    ax.set_xlim(np.min(scores)-0.05, np.max(scores)+0.05)
     ax.set_ylim(np.min(entropy)-0.05, np.max(entropy)+0.05)
     #ax.set_aspect('equal', adjustable='box')
     ax.set_box_aspect(1)
@@ -720,7 +720,7 @@ def run_post_evaluation(run_id):
                               download=False,
                               aug_type="torchvision"
                               ).with_annotator_labels(label_dist, RA_dec)
-    alphas = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    alphas = [0.02, 0.05, 0.1]
     for alpha in alphas:
         calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
         threshold = calculate_threshold(calibration_set, alpha)
