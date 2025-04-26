@@ -581,7 +581,6 @@ def run_post_evaluation(run_id):
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_hmc_conf.png", plot_data_hmc_conf)
 
     # Monte Carlo conformal prediction
-    mb_conf_annotated = mb_conf.with_annotator_labels(label_dist, RA_dec)
     mb_calibration = MBFRFull(root=paths["mb"],
                               train=False,
                               calibration=True,
@@ -589,18 +588,11 @@ def run_post_evaluation(run_id):
                               download=False,
                               aug_type="torchvision"
                               ).with_annotator_labels(label_dist, RA_dec)
-    
-    mb_test = MBFRFull(root=paths["mb"],
-                              train=False,
-                              transform=transform,
-                              download=False,
-                              aug_type="torchvision",
-                              ).with_annotator_labels(label_dist, RA_dec)
 
     calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
     threshold = calculate_threshold(calibration_set, 0.15)
-    predictions = create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec)
-    predictions_conf = create_prediction_sets(model, mb_conf_annotated, threshold, label_dist, RA_dec)
+    predictions = create_prediction_sets(model, mb_test_annotator, threshold, label_dist, RA_dec)
+    predictions_conf = create_prediction_sets(model, mb_conf_annotator, threshold, label_dist, RA_dec)
     prediction_set_sizes = []
     prediction_set_sizes_conf = []
     for sample in predictions:
