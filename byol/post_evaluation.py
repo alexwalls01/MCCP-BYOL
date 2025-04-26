@@ -775,6 +775,7 @@ def run_post_evaluation(run_id):
     FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 100, label_dist, RA_dec)
     test_scores = 2 * calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
     test_conf_scores = 2 * calculate_class_conditional_scores(model, mb_conf_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test_conf")
+    all_scores = np.concatenate(test_scores, test_conf_scores)
 
     plot_data_conditional = {"umap": mb_test_umap,
                            "labels": mb_test_annotations,
@@ -782,7 +783,7 @@ def run_post_evaluation(run_id):
                            "uncertainty": test_scores,
                            "cbar_label": r'$\alpha$',
                            "cbar_ticks": None,
-                           "cbar_lims": [np.min(np.concatenate(test_scores, test_conf_scores)), np.max(np.concatenate(test_scores, test_conf_scores))]
+                           "cbar_lims": [np.min(all_scores), np.max(all_scores)]
                            }
     plot_data_conditional_conf = {"umap": mb_conf_umap,
                            "labels": mb_conf_annotations,
@@ -790,7 +791,7 @@ def run_post_evaluation(run_id):
                            "uncertainty": test_conf_scores,
                            "cbar_label": r'$\alpha$',
                            "cbar_ticks": None,
-                           "cbar_lims": [np.min(np.concatenate(test_scores, test_conf_scores)), np.max(np.concatenate(test_scores, test_conf_scores))]
+                           "cbar_lims": [np.min(all_scores), np.max(all_scores)]
                            }
     xlims = [np.min(np.vstack((mb_test_umap, mb_conf_umap))[:,0]), np.max(np.vstack((mb_test_umap, mb_conf_umap))[:,0])]
     ylims = [np.min(np.vstack((mb_test_umap, mb_conf_umap))[:,1]), np.max(np.vstack((mb_test_umap, mb_conf_umap))[:,1])]
