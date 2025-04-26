@@ -317,8 +317,9 @@ class MiraBest_F(data.Dataset):
     
     def get_annotator_entropy(self):
         entropy = []
+        # Calculates normalized entropy for each sample's label distribution
         for label_dist in self.label_dist:
-            entropy.append(np.sum(label_dist * np.log2(label_dist)))
+            entropy.append((-np.sum(np.where(label_dist>0, label_dist * np.log2(label_dist), 0.0))) / np.log2(len(label_dist)))
         return np.array(entropy)
 
     

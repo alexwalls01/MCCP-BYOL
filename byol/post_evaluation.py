@@ -400,7 +400,11 @@ def plot_embedding_uncertainty(fig_path, plot_data):
 
     normalize = colors.Normalize(vmin=np.min(plot_data["uncertainty"]), vmax=np.max(plot_data["uncertainty"]))
     sc = ax.scatter(plot_data["umap"][:, 0], plot_data["umap"][:, 1], c=plot_data["uncertainty"], cmap='viridis', norm=normalize, ec=None, alpha=0.5, s=marker_size)
-    fig.colorbar(sc, ax=ax, label=plot_data["cbar_label"])
+    cbar = fig.colorbar(sc, ax=ax)
+    cbar.set_label(label=plot_data["cbar_label"], size=18)
+    if plot_data["cbar_ticks"] is not None:
+        cbar.set_ticks(ticks=plot_data["cbar_ticks"])
+    cbar.ax.tick_params(labelsize=14)
     ax.set_xlabel("UMAP x", fontsize=18)
     ax.set_ylabel("UMAP y", fontsize=18)
     ax.tick_params(axis='both', which='major', labelsize=14)
@@ -527,26 +531,25 @@ def run_post_evaluation(run_id):
     # Put together data to plot
     plot_data_orig = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                       "labels": np.concatenate((mb_train_labels, mb_test_labels), axis=0),
-                      "title": "MiraBest labels",
                       }
     plot_data_preds = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                        "labels": np.concatenate((mb_train_preds, mb_test_preds), axis=0),
-                       "title": "Model predictions",
                        }
     plot_data_annotator = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                            "labels": np.concatenate((mb_train_annotations, mb_test_annotations), axis=0),
-                           "title": "Annotator labels",
                            "uncertainty": np.concatenate((annotator_entropy_train, annotator_entropy_test)),
                            "cbar_label": "Entropy of label distribution"
                            }
     plot_data_annotator_conf = {"umap": mb_conf_umap,
                                 "labels": mb_conf_annotations,
                                 "uncertainty": annotator_entropy_conf,
-                                "cbar_label": "Entropy of label distribution"}
+                                "cbar_label": "Entropy of label distribution (normalized)",
+                                "cbar_ticks": None}
     plot_data_hmc_conf = {"umap": mb_conf_umap,
                                 "labels": mb_conf_annotations,
                                 "uncertainty": mb_conf_entropy,
-                                "cbar_label": "Predictive entropy"}
+                                "cbar_label": "Predictive entropy",
+                                "cbar_ticks": None}
     
     # Plot embedding
     plot_embedding(save_dir + "/" + run_id + "_embedding_MiraBest.png", plot_data_orig)
@@ -596,13 +599,15 @@ def run_post_evaluation(run_id):
                            "labels": mb_test_annotations,
                            "title": "Annotator labels",
                            "uncertainty": prediction_set_sizes,
-                           "cbar_label": "Prediction set size"
+                           "cbar_label": "Prediction set size",
+                           "cbar_ticks": [0, 1, 2, 3]
                            }
     plot_data_mccp_conf = {"umap": mb_conf_umap,
                            "labels": mb_conf_annotations,
                            "title": "Annotator labels",
                            "uncertainty": prediction_set_sizes_conf,
-                           "cbar_label": "Prediction set size"
+                           "cbar_label": "Prediction set size",
+                           "cbar_ticks": [0, 1, 2, 3]
                            }
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov90.png", plot_data_mccp)
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov90.png", plot_data_mccp_conf)
