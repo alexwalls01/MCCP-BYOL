@@ -448,7 +448,7 @@ class MBFRConfidentNoHybrids(MiraBest_F):
     """
 
     def __init__(self, *args, **kwargs):
-        super(MBFRConfidentFR, self).__init__(*args, **kwargs)
+        super(MBFRConfidentNoHybrids, self).__init__(*args, **kwargs)
 
         fr1_list = [0, 1, 2]
         fr2_list = [5, 6]
