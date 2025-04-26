@@ -377,8 +377,9 @@ def calculate_class_conditional_scores(model, mb_test, FRI_set, FRII_set, hybrid
 
         find_score = True
         alphas = np.arange(0, 1, 0.01)
-        idx = 0
+        idx = -1
         while find_score is True:
+            idx += 1
             threshold = calculate_threshold(calibration_set, alphas[idx])
             softmax = F.softmax(torch.tensor(sample["logits"]), dim=0).tolist()
             prediction_set = []
@@ -390,7 +391,8 @@ def calculate_class_conditional_scores(model, mb_test, FRI_set, FRII_set, hybrid
             size = 3 - prediction_set.count(0)
             if size == 1:
                 find_score = False
-            idx += 1
+            if idx == len(alphas) - 1:
+                find_score = False
         scores.append(alphas[idx-1])
     return np.array(scores)
 
