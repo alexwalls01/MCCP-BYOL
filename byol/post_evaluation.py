@@ -538,7 +538,8 @@ def run_post_evaluation(run_id):
     plot_data_annotator = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
                            "labels": np.concatenate((mb_train_annotations, mb_test_annotations), axis=0),
                            "uncertainty": np.concatenate((annotator_entropy_train, annotator_entropy_test)),
-                           "cbar_label": "Entropy of label distribution"
+                           "cbar_label": "Entropy of label distribution",
+                           "cbar_ticks": None
                            }
     plot_data_annotator_conf = {"umap": mb_conf_umap,
                                 "labels": mb_conf_annotations,
