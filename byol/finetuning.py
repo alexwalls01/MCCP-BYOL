@@ -147,7 +147,7 @@ class FineTune(pl.LightningModule):
         return loss
     
     def validation_step(self, batch, batch_idx):
-        x, y_soft = batch                # y_soft: FloatTensor[B,3]
+        x, y_soft, _ = batch                # y_soft: FloatTensor[B,3]
         logits = self.head(self.encoder(x))
         preds = torch.argmax(logits, dim=1)    # LongTensor[B]
         target_hard = torch.argmax(y_soft, dim=1)  # LongTensor[B]
