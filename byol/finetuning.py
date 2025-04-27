@@ -155,11 +155,12 @@ class FineTune(pl.LightningModule):
         self.log("finetuning/val_acc", self.val_acc, on_step=False, on_epoch=True)
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
-        x, y, _ = batch
+        x, y_soft, _ = batch
         name = list(self.trainer.datamodule.data["test"].keys())[dataloader_idx]
 
         preds = self.forward(x)
-        self.test_acc[dataloader_idx](preds, y)
+        target_hard = torch.argmax(y_soft, dim=1)  # LongTensor[B]
+        self.test_acc[dataloader_idx](preds, target_hard)
         self.log(
             f"finetuning/test/{name}_acc",
             self.test_acc[dataloader_idx],
