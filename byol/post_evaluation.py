@@ -706,7 +706,7 @@ def run_post_evaluation(run_id):
                        "labels": np.concatenate((mb_train_preds, mb_test_preds), axis=0),
                        }
     plot_data_annotator = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
-                           "labels": np.concatenate((mb_train_annotations, mb_test_annotations), axis=0),
+                           "labels": np.argmax(np.concatenate((mb_train_annotations, mb_test_annotations), axis=0), axis=1),
                            "uncertainty": np.concatenate((annotator_entropy_train, annotator_entropy_test)),
                            "cbar_label": "Entropy of label distribution",
                            "cbar_ticks": None,
@@ -763,7 +763,7 @@ def run_post_evaluation(run_id):
         prediction_set_sizes_conf = np.array(prediction_set_sizes_conf)
 
         plot_data_mccp = {"umap": mb_test_umap,
-                            "labels": mb_test_annotations,
+                            "labels": np.argmax(mb_test_annotations, axis=1),
                             "title": "Annotator labels",
                             "uncertainty": prediction_set_sizes,
                             "cbar_label": "Prediction set size",
@@ -771,7 +771,7 @@ def run_post_evaluation(run_id):
                             "cbar_lims": None
                             }
         plot_data_mccp_conf = {"umap": mb_conf_umap,
-                            "labels": mb_conf_annotations,
+                            "labels": np.argmax(mb_conf_annotations, axis=1),
                             "title": "Annotator labels",
                             "uncertainty": prediction_set_sizes_conf,
                             "cbar_label": "Prediction set size",
@@ -791,7 +791,7 @@ def run_post_evaluation(run_id):
     all_scores = np.concatenate((test_scores, test_conf_scores), axis=0)
 
     plot_data_conditional = {"umap": mb_test_umap,
-                           "labels": mb_test_annotations,
+                           "labels": np.argmax(mb_test_annotations, axis=1),
                            "title": "Annotator labels",
                            "uncertainty": test_scores,
                            "cbar_label": r'$\alpha$',
@@ -799,7 +799,7 @@ def run_post_evaluation(run_id):
                            "cbar_lims": [np.min(all_scores), np.max(all_scores)]
                            }
     plot_data_conditional_conf = {"umap": mb_conf_umap,
-                           "labels": mb_conf_annotations,
+                           "labels": np.argmax(mb_conf_annotations, axis=1),
                            "title": "Annotator labels",
                            "uncertainty": test_conf_scores,
                            "cbar_label": r'$\alpha$',
