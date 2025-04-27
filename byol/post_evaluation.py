@@ -826,6 +826,35 @@ def run_post_evaluation(run_id):
     scatter_plot(save_dir + "/" + run_id + "_scatter.png", annotator_entropy_test, test_scores, "Entropy of label distribution")
     scatter_plot(save_dir + "/" + run_id + "_scatter_conf.png", mb_conf_entropy, test_conf_scores, "Predictive entropy")
 
+    # Class-conditional conformal prediction (m=100)
+    FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 100, label_dist, RA_dec)
+    test_scores = calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
+    test_conf_scores = calculate_class_conditional_scores(model, mb_conf_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test_conf")
+    all_scores = np.concatenate((test_scores, test_conf_scores), axis=0)
+
+    plot_data_conditional = {"umap": mb_test_umap,
+                           "labels": np.argmax(mb_test_annotations, axis=1),
+                           "title": "Annotator labels",
+                           "uncertainty": test_scores,
+                           "cbar_label": r'$\alpha$',
+                           "cbar_ticks": None,
+                           "cbar_lims": [np.min(all_scores), np.max(all_scores)]
+                           }
+    plot_data_conditional_conf = {"umap": mb_conf_umap,
+                           "labels": np.argmax(mb_conf_annotations, axis=1),
+                           "title": "Annotator labels",
+                           "uncertainty": test_conf_scores,
+                           "cbar_label": r'$\alpha$',
+                           "cbar_ticks": None,
+                           "cbar_lims": [np.min(all_scores), np.max(all_scores)]
+                           }
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional_100.png", plot_data_conditional)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional_conf_100.png", plot_data_conditional_conf)
+
+    scatter_plot(save_dir + "/" + run_id + "_scatter_100.png", annotator_entropy_test, test_scores, "Entropy of label distribution")
+    scatter_plot(save_dir + "/" + run_id + "_scatter_conf_100.png", mb_conf_entropy, test_conf_scores, "Predictive entropy")
+
+
     # Test values of alpha
 
     test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
