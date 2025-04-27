@@ -683,7 +683,7 @@ def run_post_evaluation(run_id):
     mb_conf_preds = mb_conf_pseudo.targets
     mb_conf_annotations = np.argmax(np.array(mb_conf_annotator.targets))
 
-    rgz_preds = get_rgz_preds(model, label_dist, RA_dec)
+    #rgz_preds = get_rgz_preds(model, label_dist, RA_dec)
 
     # Get relevant uncertainty measures
     annotator_entropy_train = mb_train_annotator.get_annotator_entropy()
@@ -696,7 +696,7 @@ def run_post_evaluation(run_id):
     mb_test_umap = reducer.transform(mb_test)
     mb_train_umap = reducer.transform(mb_train)
     mb_conf_umap = reducer.transform(mb_conf)
-    rgz_umap = reducer.transform()
+    #rgz_umap = reducer.transform()
 
     # Put together data to plot
     plot_data_orig = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
@@ -726,14 +726,14 @@ def run_post_evaluation(run_id):
                                 "cbar_ticks": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
                                 "cbar_lims": None
                                 }
-    plot_data_rgz = {"umap": rgz_umap,
-                     "labels": rgz_preds}
+    #plot_data_rgz = {"umap": rgz_umap,
+    #                 "labels": rgz_preds}
     
     # Plot embedding
     plot_embedding(save_dir + "/" + run_id + "_embedding_MiraBest.png", plot_data_orig)
     plot_embedding(save_dir + "/" + run_id + "_embedding_predictions.png", plot_data_preds)
     plot_embedding(save_dir + "/" + run_id + "_embedding_annotations.png", plot_data_annotator)
-    plot_embedding(save_dir + "/" + run_id + "_embedding_rgz.png", plot_data_rgz)
+    #plot_embedding(save_dir + "/" + run_id + "_embedding_rgz.png", plot_data_rgz)
 
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_annotator_entropy.png", plot_data_annotator)
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_annotator_entropy_conf.png", plot_data_annotator_conf)
