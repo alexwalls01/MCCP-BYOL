@@ -675,13 +675,13 @@ def run_post_evaluation(run_id):
     
     mb_test_labels = mb_test.targets
     mb_test_preds = mb_test_pseudo.targets
-    mb_test_annotations = mb_test_annotator.targets.argmax(axis=1)
+    mb_test_annotations = np.argmax(np.array(mb_test_annotator.targets))
     mb_train_labels = mb_train.targets
     mb_train_preds = mb_train_pseudo.targets
-    mb_train_annotations = mb_train_annotator.targets.argmax(axis=1)
+    mb_train_annotations = np.argmax(np.array(mb_train_annotator.targets))
     mb_conf_labels = mb_conf.targets
     mb_conf_preds = mb_conf_pseudo.targets
-    mb_conf_annotations = mb_conf_annotator.targets.argmax(axis=1)
+    mb_conf_annotations = np.argmax(np.array(mb_conf_annotator.targets))
 
     rgz_preds = get_rgz_preds(model)
 
