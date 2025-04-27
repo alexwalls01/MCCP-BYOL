@@ -294,6 +294,17 @@ class FineTuning_DataModule(pl.LightningDataModule):
             shuffle=True,
         )
         return loader
+    
+    def train_dataloader2(self):
+        loader = DataLoader(
+            self.data["train"],
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            prefetch_factor=self.prefetch_factor,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )
+        return loader
 
     def val_dataloader(self):
         loader = DataLoader(
