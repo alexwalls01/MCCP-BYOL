@@ -340,6 +340,16 @@ class FineTuning_DataModule(pl.LightningDataModule):
             pin_memory=self.pin_memory,
         )
         return loader
+    
+    def rgz_dataloader(self):
+        loader = DataLoader(
+            self.data["rgz"],
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            prefetch_factor=self.prefetch_factor,
+            pin_memory=self.pin_memory,
+        )
+        return loader
 
 
 class RGZ_DataModule_Finetune(FineTuning_DataModule):
@@ -459,6 +469,14 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 train=False,
                 transform=self.test_transform,
             ).with_annotator_labels(self.label_dist, self.RA_dec)
+            self.data["rgz"] = RGZ108k(
+                self.path,
+                train=True,
+                transform=self.train_transform,
+                remove_duplicates=True,
+                cut_threshold=25,
+                mb_cut=True,
+            )
 
         self.data["test"] = OrderedDict(
             {

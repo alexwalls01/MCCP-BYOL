@@ -197,6 +197,8 @@ def load_dataloader(stage, label_dist=None, RA_dec=None):
         dataloader = datamodule.calibration_dataloader()
     elif stage == "test_conf":
         dataloader = datamodule.test_conf_dataloader()
+    elif stage == "rgz":
+        dataloader = datamodule.rgz_dataloader()
     else:
         raise ValueError("Unsupported dataloader stage.")
     return dataloader
@@ -219,7 +221,7 @@ def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec):
         # Extract the target class using the method provided by MBFRFull.
         target = mb_calibration.get_target(filename)
         dist = mb_calibration.get_dist(filename)
-        sample["class"] = np.argmax(target.detach().cpu().numpy())
+        sample["class"] = np.argmax(target)
         sample["label_dist"] = dist
 
     calibration_set = []
@@ -252,7 +254,7 @@ def create_class_conditional_calibration_sets(model, mb_calibration, m, label_di
         # Extract the target class using the method provided by MBFRFull.
         target = mb_calibration.get_target(filename)
         dist = mb_calibration.get_dist(filename)
-        sample["class"] = np.argmax(target.detach().cpu().numpy())
+        sample["class"] = np.argmax(target)
         sample["label_dist"] = dist
 
     calibration_set = []
@@ -320,7 +322,7 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec, stage)
         filename = sample["filename"]
         target = mb_test.get_target(filename)
         dist = mb_test.get_dist(filename)
-        sample["class"] = np.argmax(target.detach().cpu().numpy())
+        sample["class"] = np.argmax(target)
         sample["label_dist"] = dist
     
     for sample in predictions:
@@ -365,7 +367,7 @@ def calculate_class_conditional_scores(model, mb_test, FRI_set, FRII_set, hybrid
     scores = []
     for sample in predictions:
         filename = sample["filename"]
-        sample["class"] = np.argmax(mb_test.get_target(filename).detach().cpu().numpy())
+        sample["class"] = np.argmax(mb_test.get_target(filename))
         sample["label_dist"] = mb_test.get_dist(filename)
 
         if np.argmax(sample["class"]) == 0:
@@ -558,6 +560,17 @@ def violin_plot(fig_path, entropy, prediction_set_size, ylabel):
     ax.set_ylim(-0.1, 1.1)
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
+def get_rgz_preds(model):
+    trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
+    prediction_loader = load_dataloader("rgz", label_dist=None, RA_dec=None)
+    batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
+    predictions = []
+    for batch in batch_predictions:
+        # Ensure logits are in a list format
+        logits_list = batch["logits"].tolist() if isinstance(batch["logits"], torch.Tensor) else batch["logits"]
+        predictions.append(logits_list)
+    return predictions
+
 def scatter_plot(fig_path, entropy, scores, ylabel):
 
     fig, ax = pylab.subplots(constrained_layout=True)
@@ -662,13 +675,15 @@ def run_post_evaluation(run_id):
     
     mb_test_labels = mb_test.targets
     mb_test_preds = mb_test_pseudo.targets
-    mb_test_annotations = mb_test_annotator.targets.detach().cpu().numpy().argmax(axis=1)
+    mb_test_annotations = mb_test_annotator.targets.argmax(axis=1)
     mb_train_labels = mb_train.targets
     mb_train_preds = mb_train_pseudo.targets
-    mb_train_annotations = mb_train_annotator.targets.detach().cpu().numpy().argmax(axis=1)
+    mb_train_annotations = mb_train_annotator.targets.argmax(axis=1)
     mb_conf_labels = mb_conf.targets
     mb_conf_preds = mb_conf_pseudo.targets
-    mb_conf_annotations = mb_conf_annotator.targets.detach().cpu().numpy().argmax(axis=1)
+    mb_conf_annotations = mb_conf_annotator.targets.argmax(axis=1)
+
+    rgz_preds = get_rgz_preds(model)
 
     # Get relevant uncertainty measures
     annotator_entropy_train = mb_train_annotator.get_annotator_entropy()
@@ -681,6 +696,7 @@ def run_post_evaluation(run_id):
     mb_test_umap = reducer.transform(mb_test)
     mb_train_umap = reducer.transform(mb_train)
     mb_conf_umap = reducer.transform(mb_conf)
+    rgz_umap = reducer.transform()
 
     # Put together data to plot
     plot_data_orig = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
@@ -710,11 +726,14 @@ def run_post_evaluation(run_id):
                                 "cbar_ticks": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
                                 "cbar_lims": None
                                 }
+    plot_data_rgz = {"umap": rgz_umap,
+                     "labels": rgz_preds}
     
     # Plot embedding
     plot_embedding(save_dir + "/" + run_id + "_embedding_MiraBest.png", plot_data_orig)
     plot_embedding(save_dir + "/" + run_id + "_embedding_predictions.png", plot_data_preds)
     plot_embedding(save_dir + "/" + run_id + "_embedding_annotations.png", plot_data_annotator)
+    plot_embedding(save_dir + "/" + run_id + "_embedding_rgz.png", plot_data_rgz)
 
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_annotator_entropy.png", plot_data_annotator)
     plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_annotator_entropy_conf.png", plot_data_annotator_conf)

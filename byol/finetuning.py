@@ -171,12 +171,16 @@ class FineTune(pl.LightningModule):
     
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         # Unpack the batch: x (inputs), y (labels), filenames (identifiers)
-        x, y, filenames = batch
-
-        # Run the forward pass to get logits and predictions.
-        logits = self.forward(x)
-        return {"filenames": filenames, "logits": logits}
-
+        if len(batch) == 3:
+            x, y, filenames = batch
+            # Run the forward pass to get logits and predictions.
+            logits = self.forward(x)
+            return {"filenames": filenames, "logits": logits}
+        else:
+            # For rgz
+            x, _ = batch
+            logits = self.forward(x)
+            return logits
 
     def configure_optimizers(self):
         if not self.n_layers and self.head_type == "linear":
