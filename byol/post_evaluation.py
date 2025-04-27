@@ -675,13 +675,13 @@ def run_post_evaluation(run_id):
     
     mb_test_labels = mb_test.targets
     mb_test_preds = mb_test_pseudo.targets
-    mb_test_annotations = np.argmax(np.array(mb_test_annotator.targets))
+    mb_test_annotations = np.array(mb_test_annotator.targets)
     mb_train_labels = mb_train.targets
     mb_train_preds = mb_train_pseudo.targets
-    mb_train_annotations = np.argmax(np.array(mb_train_annotator.targets))
+    mb_train_annotations = np.array(mb_train_annotator.targets)
     mb_conf_labels = mb_conf.targets
     mb_conf_preds = mb_conf_pseudo.targets
-    mb_conf_annotations = np.argmax(np.array(mb_conf_annotator.targets))
+    mb_conf_annotations = np.array(mb_conf_annotator.targets)
 
     #rgz_preds = get_rgz_preds(model, label_dist, RA_dec)
 
@@ -710,21 +710,21 @@ def run_post_evaluation(run_id):
                            "uncertainty": np.concatenate((annotator_entropy_train, annotator_entropy_test)),
                            "cbar_label": "Entropy of label distribution",
                            "cbar_ticks": None,
-                           "cbar_lims": None
+                           "cbar_lims": [0,1]
                            }
     plot_data_annotator_conf = {"umap": mb_conf_umap,
                                 "labels": mb_conf_annotations,
                                 "uncertainty": annotator_entropy_conf,
                                 "cbar_label": "Entropy of label distribution",
                                 "cbar_ticks": None,
-                                "cbar_lims": None
+                                "cbar_lims": [0,1]
                                 }
     plot_data_hmc_conf = {"umap": mb_conf_umap,
                                 "labels": mb_conf_annotations,
                                 "uncertainty": mb_conf_entropy,
                                 "cbar_label": "Predictive entropy",
                                 "cbar_ticks": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
-                                "cbar_lims": None
+                                "cbar_lims": [0,1]
                                 }
     #plot_data_rgz = {"umap": rgz_umap,
     #                 "labels": rgz_preds}
