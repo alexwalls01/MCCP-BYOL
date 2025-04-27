@@ -1,6 +1,6 @@
 finetune:
   run_id: 'none'
-  wandb_project: "BYOL_finetune_MCCP_soft"
+  wandb_project: "BYOL_finetune_MCCP"
 
   preset: 'optimal'
   dataset: 'mb'
