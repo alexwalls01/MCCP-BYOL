@@ -560,6 +560,28 @@ def violin_plot(fig_path, entropy, prediction_set_size, ylabel):
     ax.set_ylim(-0.1, 1.1)
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
+def box_plot(fig_path, entropy, prediction_set_size, ylabel):
+
+    fig, ax = pylab.subplots(constrained_layout=True)
+
+    size_one_indices = [i for i, val in enumerate(prediction_set_size) if val == 1]
+    size_two_indices = [i for i, val in enumerate(prediction_set_size) if val == 2]
+    size_three_indices = [i for i, val in enumerate(prediction_set_size) if val == 3]
+
+    plot_data = [entropy[size_one_indices], entropy[size_two_indices], entropy[size_three_indices]]
+    ax.boxplot(plot_data)
+    ax.set_xlabel("Prediction set size", fontsize=18)
+    ax.set_xticks([y + 1 for y in range(len(plot_data))], labels=['1', '2', '3'])
+    ax.set_ylabel(ylabel, fontsize=18)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.tick_params(axis='both', which='minor', labelsize=14)
+    ax.yaxis.grid(True)
+    #ax.set_aspect('equal', adjustable='box')
+    ax.set_box_aspect(1)
+    #pylab.gca().set_aspect("equal", "datalim")
+    ax.set_ylim(-0.1, 1.1)
+    fig.savefig(fig_path, bbox_inches="tight", dpi=600)
+
 def get_rgz_preds(model, label_dist, RA_dec):
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     prediction_loader = load_dataloader("rgz", label_dist=label_dist, RA_dec=RA_dec)
@@ -747,7 +769,7 @@ def run_post_evaluation(run_id):
                               download=False,
                               aug_type="torchvision"
                               ).with_annotator_labels(label_dist, RA_dec)
-    alphas = [0.06, 0.07, 0.08, 0.09, 0.04, 0.03, 0.02]
+    alphas = [0.1, 0.15]
     for alpha in alphas:
         calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
         threshold = calculate_threshold(calibration_set, alpha)
@@ -797,6 +819,9 @@ def run_post_evaluation(run_id):
 
         violin_plot(save_dir + "/" + run_id + "_violin_PE_cov"  + str((1-alpha)*100) + ".png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
         violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov" +  str((1-alpha)*100) + ".png", np.concatenate((annotator_entropy_train, annotator_entropy_test)), np.concatenate((prediction_set_sizes_train, prediction_set_sizes)), "Entropy of label distribution")
+
+        box_plot(save_dir + "/" + run_id + "_box_PE_cov"  + str((1-alpha)*100) + ".png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
+        box_plot(save_dir + "/" + run_id + "_box_annotator_cov" +  str((1-alpha)*100) + ".png", np.concatenate((annotator_entropy_train, annotator_entropy_test)), np.concatenate((prediction_set_sizes_train, prediction_set_sizes)), "Entropy of label distribution")
 
     # Class-conditional conformal prediction
     FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 1, label_dist, RA_dec)
