@@ -560,9 +560,9 @@ def violin_plot(fig_path, entropy, prediction_set_size, ylabel):
     ax.set_ylim(-0.1, 1.1)
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
-def get_rgz_preds(model):
+def get_rgz_preds(model, label_dist, RA_dec):
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
-    prediction_loader = load_dataloader("rgz", label_dist=None, RA_dec=None)
+    prediction_loader = load_dataloader("rgz", label_dist=label_dist, RA_dec=RA_dec)
     batch_predictions = trainer.predict(model, dataloaders=prediction_loader)
     predictions = []
     for batch in batch_predictions:
@@ -683,7 +683,7 @@ def run_post_evaluation(run_id):
     mb_conf_preds = mb_conf_pseudo.targets
     mb_conf_annotations = np.argmax(np.array(mb_conf_annotator.targets))
 
-    rgz_preds = get_rgz_preds(model)
+    rgz_preds = get_rgz_preds(model, label_dist, RA_dec)
 
     # Get relevant uncertainty measures
     annotator_entropy_train = mb_train_annotator.get_annotator_entropy()
