@@ -197,6 +197,8 @@ def load_dataloader(stage, label_dist=None, RA_dec=None):
         dataloader = datamodule.calibration_dataloader()
     elif stage == "test_conf":
         dataloader = datamodule.test_conf_dataloader()
+    elif stage == "train":
+        dataloader = datamodule.train_dataloader()
     else:
         raise ValueError("Unsupported dataloader stage.")
     return dataloader
