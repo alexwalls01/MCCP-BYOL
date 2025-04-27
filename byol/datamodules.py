@@ -470,7 +470,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 transform=self.test_transform,
             ).with_annotator_labels(self.label_dist, self.RA_dec)
             self.data["rgz"] = RGZ108k(
-                self.path,
+                "/share/nas2_3/awalls/fr-mccp/_data/rgz",
                 train=True,
                 transform=self.train_transform,
                 remove_duplicates=True,
