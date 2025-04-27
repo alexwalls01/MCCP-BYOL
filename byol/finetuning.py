@@ -145,11 +145,13 @@ class FineTune(pl.LightningModule):
         loss = -(y_soft * log_p).sum(dim=1).mean()
         self.log("finetuning/train_loss", loss, on_step=False, on_epoch=True)
         return loss
-
-    def validation_step(self, batch, batch_idx, dataloader_idx=0):
-        x, y, _ = batch
-        preds = self.forward(x)
-        self.val_acc(preds, y)
+    
+    def validation_step(self, batch, batch_idx):
+        x, y_soft = batch                # y_soft: FloatTensor[B,3]
+        logits = self.head(self.encoder(x))
+        preds = torch.argmax(logits, dim=1)    # LongTensor[B]
+        target_hard = torch.argmax(y_soft, dim=1)  # LongTensor[B]
+        self.val_acc(preds, target_hard)
         self.log("finetuning/val_acc", self.val_acc, on_step=False, on_epoch=True)
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
