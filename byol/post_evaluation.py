@@ -598,7 +598,7 @@ def run_post_evaluation(run_id):
     save_dir = eval_config['save_dir'] + "/" + wandb_project
     os.makedirs(save_dir, exist_ok=True)
 
-    ckpt_path = os.path.join(ckpt_folder, run_id, wandb_project, run_id, "checkpoints", "epoch=299-step=4500.ckpt")
+    ckpt_path = os.path.join(ckpt_folder, run_id, wandb_project, run_id, "checkpoints", "epoch=299-step=3000.ckpt")
     model = load_checkpoint(ckpt_path)
 
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
@@ -751,13 +751,18 @@ def run_post_evaluation(run_id):
         threshold = calculate_threshold(calibration_set, alpha)
         predictions = create_prediction_sets(model, mb_test_annotator, threshold, label_dist, RA_dec, "test")
         predictions_conf = create_prediction_sets(model, mb_conf_annotator, threshold, label_dist, RA_dec, "test_conf")
+        predictions_train = create_prediction_sets(model, mb_train_annotator, threshold, label_dist, RA_dec, "train")
         prediction_set_sizes = []
         prediction_set_sizes_conf = []
+        prediction_set_sizes_train = []
         for sample in predictions:
             prediction_set_sizes.append(3 - sample["prediction_set"].count(0))
         prediction_set_sizes = np.array(prediction_set_sizes)
         for sample in predictions_conf:
             prediction_set_sizes_conf.append(3 - sample["prediction_set"].count(0))
+        prediction_set_sizes_conf = np.array(prediction_set_sizes_conf)
+        for sample in predictions_train:
+            prediction_set_sizes_train.append(3 - sample["prediction_set"].count(0))
         prediction_set_sizes_conf = np.array(prediction_set_sizes_conf)
 
         plot_data_mccp = {"umap": mb_test_umap,
@@ -776,11 +781,20 @@ def run_post_evaluation(run_id):
                             "cbar_ticks": [1, 2, 3],
                             "cbar_lims": None
                             }
+        plot_data_mccp_all = {"umap": np.vstack((mb_train_umap, mb_test_umap)),
+                            "labels": np.argmax(np.concatenate((mb_train_annotations, mb_test_annotations), axis=0), axis=1),
+                            "title": "Annotator labels",
+                            "uncertainty": np.concatenate((prediction_set_sizes_train, prediction_set_sizes), axis=0),
+                            "cbar_label": "Prediction set size",
+                            "cbar_ticks": [1, 2, 3],
+                            "cbar_lims": None
+                            }
         plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_cov" + str((1-alpha)*100) + ".png", plot_data_mccp)
         plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_conf_cov"  + str((1-alpha)*100) + ".png", plot_data_mccp_conf)
+        plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_all_cov"  + str((1-alpha)*100) + ".png", plot_data_mccp_all)
 
         violin_plot(save_dir + "/" + run_id + "_violin_PE_cov"  + str((1-alpha)*100) + ".png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
-        violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov" +  str((1-alpha)*100) + ".png", annotator_entropy_test, prediction_set_sizes, "Entropy of label distribution")
+        violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov" +  str((1-alpha)*100) + ".png", np.concatenate((annotator_entropy_train, annotator_entropy_test)), np.concatenate((prediction_set_sizes_train, prediction_set_sizes)), "Entropy of label distribution")
 
     # Class-conditional conformal prediction
     FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 1, label_dist, RA_dec)
