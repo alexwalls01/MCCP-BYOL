@@ -820,9 +820,6 @@ def run_post_evaluation(run_id):
         violin_plot(save_dir + "/" + run_id + "_violin_PE_cov"  + str((1-alpha)*100) + ".png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
         violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov" +  str((1-alpha)*100) + ".png", np.concatenate((annotator_entropy_train, annotator_entropy_test)), np.concatenate((prediction_set_sizes_train, prediction_set_sizes)), "Entropy of label distribution")
 
-        box_plot(save_dir + "/" + run_id + "_box_PE_cov"  + str((1-alpha)*100) + ".png", mb_conf_entropy, prediction_set_sizes_conf, "Predictive entropy")
-        box_plot(save_dir + "/" + run_id + "_box_annotator_cov" +  str((1-alpha)*100) + ".png", np.concatenate((annotator_entropy_train, annotator_entropy_test)), np.concatenate((prediction_set_sizes_train, prediction_set_sizes)), "Entropy of label distribution")
-
     # Class-conditional conformal prediction
     FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 1, label_dist, RA_dec)
     test_scores = calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
