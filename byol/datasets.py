@@ -288,7 +288,6 @@ class MiraBest_F(data.Dataset):
                 if pos in filename:
                     new.label_dist[j] = label_dist[i]
                     new.targets[j] = label_dist[i]
-        new.targets = torch.tensor(new.targets, dtype=torch.float, device='cuda')
         return new
 
     def subset_by_label(self, label: int):
