@@ -219,7 +219,7 @@ def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec):
         # Extract the target class using the method provided by MBFRFull.
         target = mb_calibration.get_target(filename)
         dist = mb_calibration.get_dist(filename)
-        sample["class"] = target
+        sample["class"] = np.argmax(target.detach().cpu().numpy())
         sample["label_dist"] = dist
 
     calibration_set = []
@@ -252,7 +252,7 @@ def create_class_conditional_calibration_sets(model, mb_calibration, m, label_di
         # Extract the target class using the method provided by MBFRFull.
         target = mb_calibration.get_target(filename)
         dist = mb_calibration.get_dist(filename)
-        sample["class"] = target
+        sample["class"] = np.argmax(target.detach().cpu().numpy())
         sample["label_dist"] = dist
 
     calibration_set = []
@@ -320,7 +320,7 @@ def create_prediction_sets(model, mb_test, threshold, label_dist, RA_dec, stage)
         filename = sample["filename"]
         target = mb_test.get_target(filename)
         dist = mb_test.get_dist(filename)
-        sample["class"] = target
+        sample["class"] = np.argmax(target.detach().cpu().numpy())
         sample["label_dist"] = dist
     
     for sample in predictions:
@@ -365,7 +365,7 @@ def calculate_class_conditional_scores(model, mb_test, FRI_set, FRII_set, hybrid
     scores = []
     for sample in predictions:
         filename = sample["filename"]
-        sample["class"] = mb_test.get_target(filename)
+        sample["class"] = np.argmax(mb_test.get_target(filename).detach().cpu().numpy())
         sample["label_dist"] = mb_test.get_dist(filename)
 
         if np.argmax(sample["class"]) == 0:
@@ -501,21 +501,15 @@ def plot_embedding(fig_path, plot_data):
 
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
-def plot_embedding_uncertainty(fig_path, plot_data, xlims=None, ylims=None):
+def plot_embedding_uncertainty(fig_path, plot_data):
 
     fig, ax = pylab.subplots(constrained_layout=True)
 
     marker_size = 15
-    if xlims is None:
-        xmin = np.min(plot_data["umap"][:, 0]) - 0.5
-        xmax = np.max(plot_data["umap"][:, 0]) + 0.5
-        ymin = np.min(plot_data["umap"][:, 1]) - 0.5
-        ymax = np.max(plot_data["umap"][:, 1]) + 0.5
-    else:
-        xmin = xlims[0]
-        xmax = xlims[1]
-        ymin = ylims[0]
-        ymax = ylims[1]
+    xmin = np.min(plot_data["umap"][:, 0]) - 0.5
+    xmax = np.max(plot_data["umap"][:, 0]) + 0.5
+    ymin = np.min(plot_data["umap"][:, 1]) - 0.5
+    ymax = np.max(plot_data["umap"][:, 1]) + 0.5
         
     if plot_data["cbar_lims"] is not None:
         normalize = colors.Normalize(vmin=plot_data["cbar_lims"][0], vmax=plot_data["cbar_lims"][1])
@@ -666,15 +660,15 @@ def run_post_evaluation(run_id):
     mb_train_annotator = mb_train.with_annotator_labels(label_dist, RA_dec)
     mb_conf_annotator = mb_conf.with_annotator_labels(label_dist, RA_dec)
     
-    mb_test_labels = np.array(mb_test.targets)
-    mb_test_preds = np.array(mb_test_pseudo.targets)
-    mb_test_annotations = np.array(mb_test_annotator.targets)
-    mb_train_labels = np.array(mb_train.targets)
-    mb_train_preds = np.array(mb_train_pseudo.targets)
-    mb_train_annotations = np.array(mb_train_annotator.targets)
-    mb_conf_labels = np.array(mb_conf.targets)
-    mb_conf_preds = np.array(mb_conf_pseudo.targets)
-    mb_conf_annotations = np.array(mb_conf_annotator.targets)
+    mb_test_labels = mb_test.targets
+    mb_test_preds = mb_test_pseudo.targets
+    mb_test_annotations = mb_test_annotator.targets.detach().cpu().numpy().argmax(axis=1)
+    mb_train_labels = mb_train.targets
+    mb_train_preds = mb_train_pseudo.targets
+    mb_train_annotations = mb_train_annotator.targets.detach().cpu().numpy().argmax(axis=1)
+    mb_conf_labels = mb_conf.targets
+    mb_conf_preds = mb_conf_pseudo.targets
+    mb_conf_annotations = mb_conf_annotator.targets.detach().cpu().numpy().argmax(axis=1)
 
     # Get relevant uncertainty measures
     annotator_entropy_train = mb_train_annotator.get_annotator_entropy()
@@ -772,9 +766,9 @@ def run_post_evaluation(run_id):
         violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov" +  str((1-alpha)*100) + ".png", annotator_entropy_test, prediction_set_sizes, "Entropy of label distribution")
 
     # Class-conditional conformal prediction
-    FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 100, label_dist, RA_dec)
-    test_scores = 2 * calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
-    test_conf_scores = 2 * calculate_class_conditional_scores(model, mb_conf_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test_conf")
+    FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 1, label_dist, RA_dec)
+    test_scores = calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
+    test_conf_scores = calculate_class_conditional_scores(model, mb_conf_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test_conf")
     all_scores = np.concatenate((test_scores, test_conf_scores), axis=0)
 
     plot_data_conditional = {"umap": mb_test_umap,
@@ -793,19 +787,17 @@ def run_post_evaluation(run_id):
                            "cbar_ticks": None,
                            "cbar_lims": [np.min(all_scores), np.max(all_scores)]
                            }
-    xlims = [np.min(np.vstack((mb_test_umap, mb_conf_umap))[:,0]), np.max(np.vstack((mb_test_umap, mb_conf_umap))[:,0])]
-    ylims = [np.min(np.vstack((mb_test_umap, mb_conf_umap))[:,1]), np.max(np.vstack((mb_test_umap, mb_conf_umap))[:,1])]
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional.png", plot_data_conditional, xlims=xlims, ylims=ylims)
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional_conf.png", plot_data_conditional_conf, xlims=xlims, ylims=ylims)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional.png", plot_data_conditional)
+    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional_conf.png", plot_data_conditional_conf)
 
     scatter_plot(save_dir + "/" + run_id + "_scatter.png", annotator_entropy_test, test_scores, "Entropy of label distribution")
     scatter_plot(save_dir + "/" + run_id + "_scatter_conf.png", mb_conf_entropy, test_conf_scores, "Predictive entropy")
 
     # Test values of alpha
 
-    #test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
-    #test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
-    #test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
+    test_alpha(model, mb_calibration, mb_test, 1, save_dir + "/" + run_id + "_alphatest_m=1.png", label_dist, RA_dec)
+    test_alpha(model, mb_calibration, mb_test, 10, save_dir + "/" + run_id + "_alphatest_m=10.png", label_dist, RA_dec)
+    test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
 
 
 def main():

@@ -286,13 +286,9 @@ class MiraBest_F(data.Dataset):
             for j, filename in enumerate(new.filenames):
                 # Find corresponding index
                 if pos in filename:
-                    # If majority vote is tied, use MiraBest label
-                    if np.sum(label_dist[i] == np.max(label_dist[i])) > 1:
-                        new.label_dist[j] = label_dist[i]
-                    # Otherwise, use majority vote label
-                    else:
-                        new.label_dist[j] = label_dist[i]
-                        new.targets[j] = np.argmax(label_dist[i])
+                    new.label_dist[j] = label_dist[i]
+                    new.targets[j] = label_dist[i]
+        new.targets = torch.tensor(new.targets, dtype=torch.float, device='cuda')
         return new
 
     def subset_by_label(self, label: int):
@@ -322,7 +318,6 @@ class MiraBest_F(data.Dataset):
             entropy.append((-np.sum(np.where(label_dist>0, label_dist * np.log2(label_dist), 0.0))) / np.log2(len(label_dist)))
         return np.array(entropy)
 
-    
 
 class MBFRFull(MiraBest_F):
 
