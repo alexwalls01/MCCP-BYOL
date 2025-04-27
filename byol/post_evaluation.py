@@ -600,7 +600,7 @@ def run_post_evaluation(run_id):
     save_dir = eval_config['save_dir'] + "/" + wandb_project
     os.makedirs(save_dir, exist_ok=True)
 
-    ckpt_path = os.path.join(ckpt_folder, run_id, wandb_project, run_id, "checkpoints", "epoch=299-step=3000.ckpt")
+    ckpt_path = os.path.join(ckpt_folder, run_id, wandb_project, run_id, "checkpoints", "epoch=299-step=3600.ckpt")
     model = load_checkpoint(ckpt_path)
 
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
@@ -747,7 +747,7 @@ def run_post_evaluation(run_id):
                               download=False,
                               aug_type="torchvision"
                               ).with_annotator_labels(label_dist, RA_dec)
-    alphas = [0.1, 0.11, 0.12, 0.13, 0.14]
+    alphas = [0.05, 0.1, 0.15, 0.2]
     for alpha in alphas:
         calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
         threshold = calculate_threshold(calibration_set, alpha)
@@ -825,35 +825,6 @@ def run_post_evaluation(run_id):
 
     scatter_plot(save_dir + "/" + run_id + "_scatter.png", annotator_entropy_test, test_scores, "Entropy of label distribution")
     scatter_plot(save_dir + "/" + run_id + "_scatter_conf.png", mb_conf_entropy, test_conf_scores, "Predictive entropy")
-
-    # Class-conditional conformal prediction (m=100)
-    FRI_set, FRII_set, hybrid_set = create_class_conditional_calibration_sets(model, mb_calibration, 100, label_dist, RA_dec)
-    test_scores = calculate_class_conditional_scores(model, mb_test_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test")
-    test_conf_scores = calculate_class_conditional_scores(model, mb_conf_annotator, FRI_set, FRII_set, hybrid_set, label_dist, RA_dec, "test_conf")
-    all_scores = np.concatenate((test_scores, test_conf_scores), axis=0)
-
-    plot_data_conditional = {"umap": mb_test_umap,
-                           "labels": np.argmax(mb_test_annotations, axis=1),
-                           "title": "Annotator labels",
-                           "uncertainty": test_scores,
-                           "cbar_label": r'$\alpha$',
-                           "cbar_ticks": None,
-                           "cbar_lims": [np.min(all_scores), np.max(all_scores)]
-                           }
-    plot_data_conditional_conf = {"umap": mb_conf_umap,
-                           "labels": np.argmax(mb_conf_annotations, axis=1),
-                           "title": "Annotator labels",
-                           "uncertainty": test_conf_scores,
-                           "cbar_label": r'$\alpha$',
-                           "cbar_ticks": None,
-                           "cbar_lims": [np.min(all_scores), np.max(all_scores)]
-                           }
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional_100.png", plot_data_conditional)
-    plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_conditional_conf_100.png", plot_data_conditional_conf)
-
-    scatter_plot(save_dir + "/" + run_id + "_scatter_100.png", annotator_entropy_test, test_scores, "Entropy of label distribution")
-    scatter_plot(save_dir + "/" + run_id + "_scatter_conf_100.png", mb_conf_entropy, test_conf_scores, "Predictive entropy")
-
 
     # Test values of alpha
 
