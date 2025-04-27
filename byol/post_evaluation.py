@@ -747,7 +747,7 @@ def run_post_evaluation(run_id):
                               download=False,
                               aug_type="torchvision"
                               ).with_annotator_labels(label_dist, RA_dec)
-    alphas = [0.05, 0.1, 0.15, 0.2]
+    alphas = [0.05, 0.04, 0.03, 0.02, 0.1]
     for alpha in alphas:
         calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
         threshold = calculate_threshold(calibration_set, alpha)
