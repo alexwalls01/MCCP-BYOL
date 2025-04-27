@@ -314,7 +314,13 @@ class MiraBest_F(data.Dataset):
         entropy = []
         # Calculates normalized entropy for each sample's label distribution
         for label_dist in self.label_dist:
-            entropy.append((-np.sum(np.where(label_dist>0, label_dist * np.log2(label_dist), 0.0))) / np.log2(len(label_dist)))
+            label_dist = np.array(label_dist)
+            K = 3
+            # Dirichlet smoothing
+            label_dist = (label_dist + 0.1) / (1 + K * 0.1)
+            # Entropy
+            H = -np.sum(label_dist * np.log(label_dist + 1e-20))
+            entropy.append(H / np.log(K))
         return np.array(entropy)
 
 
