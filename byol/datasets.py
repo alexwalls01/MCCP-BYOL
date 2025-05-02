@@ -605,7 +605,7 @@ class Hybrids(MiraBest_F):
     """
 
     def __init__(self, *args, **kwargs):
-        super(MBFRUncertainNoHybrids, self).__init__(*args, **kwargs)
+        super(Hybrids, self).__init__(*args, **kwargs)
 
         #fr1_list = []
         #fr2_list = []
