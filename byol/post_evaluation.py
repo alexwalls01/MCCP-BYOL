@@ -462,11 +462,14 @@ def test_alpha(model, mb_calibration, mb_test, m, fig_path, label_dist, RA_dec):
     fig.savefig(fig_path, bbox_inches="tight", dpi=600)
 
 
-def plot_embedding(fig_path, plot_data):
+def plot_embedding(fig_path, plot_data, marker_size=None):
 
     fig, ax = pylab.subplots(constrained_layout=True)
 
-    marker_size = 15
+    if marker_size is None:
+        marker_size = 15
+    else:
+        marker_size = 1
     xmin = np.min(plot_data["umap"][:, 0]) - 0.5
     xmax = np.max(plot_data["umap"][:, 0]) + 0.5
     ymin = np.min(plot_data["umap"][:, 1]) - 0.5
@@ -882,7 +885,7 @@ def run_post_evaluation(run_id):
     rgz_preds = get_rgz_preds(model, label_dist, RA_dec)
     plot_data_rgz = {"umap": rgz_umap,
                     "labels": rgz_preds}
-    plot_embedding(save_dir + "/" + run_id + "_embedding_rgz.png", plot_data_rgz)
+    plot_embedding(save_dir + "/" + run_id + "_embedding_rgz.png", plot_data_rgz, marker_size=1)
 
 
 
