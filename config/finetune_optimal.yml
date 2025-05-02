@@ -31,3 +31,4 @@ conformal_prediction:
   label_dist: 'label_dist.npy'
   RA_dec: 'RA_dec.npy'
   hmc_data: 'hmc_predictive_entropy.csv'
+  hmc_energy: 'hmc_energy_scores.csv'

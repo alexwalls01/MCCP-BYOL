@@ -649,6 +649,11 @@ def run_post_evaluation(run_id):
     hmc_uncert_test = hmc_entropy[:,4][~np.isnan(hmc_entropy[:,4])]
     hmc_hybrids_test = hmc_entropy[:,5][~np.isnan(hmc_entropy[:,5])]
 
+    hmc_energy = np.genfromtxt(config["conformal_prediction"]["hmc_energy"], delimiter=',', skip_header=1)
+    energy_conf_test = hmc_energy[:,1][~np.isnan(hmc_energy[:,1])]
+    energy_uncert_test = hmc_energy[:,4][~np.isnan(hmc_energy[:,4])]
+    energy_hybrids_test = hmc_energy[:,5][~np.isnan(hmc_energy[:,5])]
+
     encoder = model.encoder
     encoder.eval()
 
@@ -870,6 +875,7 @@ def run_post_evaluation(run_id):
         plot_embedding_uncertainty(save_dir + "/" + run_id + "_embedding_mccp_all_cov"  + str((1-alpha)*100) + ".png", plot_data_mccp_all)
 
         violin_plot(save_dir + "/" + run_id + "_violin_PE_cov"  + str((1-alpha)*100) + ".png", np.concatenate((hmc_conf_test, hmc_uncert_test, hmc_hybrids_test)), np.concatenate((prediction_set_sizes_conf, prediction_set_sizes_uncert, prediction_set_sizes_hybrids)), "Predictive entropy")
+        violin_plot(save_dir + "/" + run_id + "_violin_energy_cov"  + str((1-alpha)*100) + ".png", np.concatenate((energy_conf_test, energy_uncert_test, energy_hybrids_test)), np.concatenate((prediction_set_sizes_conf, prediction_set_sizes_uncert, prediction_set_sizes_hybrids)), "Predictive entropy")
         violin_plot(save_dir + "/" + run_id + "_violin_annotator_cov" +  str((1-alpha)*100) + ".png", np.concatenate((annotator_entropy_train, annotator_entropy_test)), np.concatenate((prediction_set_sizes_train, prediction_set_sizes)), "Entropy of label distribution")
 
     # Annotator entropy vs hmc predictive entropy
