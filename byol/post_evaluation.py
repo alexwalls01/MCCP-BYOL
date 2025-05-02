@@ -881,6 +881,7 @@ def run_post_evaluation(run_id):
     # Annotator entropy vs hmc predictive entropy
 
     scatter_plot(save_dir + "/" + run_id + "_PE_AE_scatter.png", np.concatenate((hmc_conf_test, hmc_uncert_test, hmc_hybrids_test)), np.concatenate((annotator_entropy_conf, annotator_entropy_uncert, annotator_entropy_hybrids)), "Predictive entropy", xlabel="Entropy of label distribution")
+    scatter_plot(save_dir + "/" + run_id + "_energy_AE_scatter.png", np.concatenate((energy_conf_test, energy_uncert_test, energy_hybrids_test)), np.concatenate((annotator_entropy_conf, annotator_entropy_uncert, annotator_entropy_hybrids)), "Energy", xlabel="Entropy of label distribution")
 
     # Test values of alpha
 
