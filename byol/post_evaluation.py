@@ -640,9 +640,9 @@ def run_post_evaluation(run_id):
     RA_dec = np.load(config["conformal_prediction"]["RA_dec"])
 
     hmc_entropy = np.genfromtxt(config["conformal_prediction"]["hmc_data"], delimiter=',', skip_header=1)
-    hmc_conf_test = hmc_entropy[:,1]
-    hmc_uncert_test = hmc_entropy[:,4]
-    hmc_hybrids_test = hmc_entropy[:,5][0:4]
+    hmc_conf_test = hmc_entropy[:,1][~np.isnan(hmc_entropy[:,1])]
+    hmc_uncert_test = hmc_entropy[:,4][~np.isnan(hmc_entropy[:,4])]
+    hmc_hybrids_test = hmc_entropy[:,5][~np.isnan(hmc_entropy[:,5])]
 
     encoder = model.encoder
     encoder.eval()
