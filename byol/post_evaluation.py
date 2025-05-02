@@ -890,11 +890,11 @@ def run_post_evaluation(run_id):
     #test_alpha(model, mb_calibration, mb_test, 100, save_dir + "/" + run_id + "_alphatest_m=100.png", label_dist, RA_dec)
 
     # RGZ embedding
-    rgz_umap = reducer.transform()
-    rgz_preds = get_rgz_preds(model, label_dist, RA_dec)
-    plot_data_rgz = {"umap": rgz_umap,
-                    "labels": rgz_preds}
-    plot_embedding(save_dir + "/" + run_id + "_embedding_rgz.png", plot_data_rgz, marker_size=1)
+    #rgz_umap = reducer.transform()
+    #rgz_preds = get_rgz_preds(model, label_dist, RA_dec)
+    #plot_data_rgz = {"umap": rgz_umap,
+    #                "labels": rgz_preds}
+    #plot_embedding(save_dir + "/" + run_id + "_embedding_rgz.png", plot_data_rgz, marker_size=1)
 
 
 
