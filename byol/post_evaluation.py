@@ -203,6 +203,8 @@ def load_dataloader(stage, label_dist=None, RA_dec=None):
         dataloader = datamodule.test_hybrids_dataloader()
     elif stage == "train":
         dataloader = datamodule.train_dataloader2()
+    elif stage == "rgz":
+        dataloader = datamodule.rgz_dataloader()
     else:
         raise ValueError("Unsupported dataloader stage.")
     return dataloader
