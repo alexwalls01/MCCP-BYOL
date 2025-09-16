@@ -136,13 +136,11 @@ class FineTune(pl.LightningModule):
                 set_grads(layer, True)
     
     def training_step(self, batch, batch_idx):
-        # Load data and soft targets
-        x, y_soft, _ = batch               # y_soft: FloatTensor of shape [B, C], sums to 1
-        # Forward pass
+        # Load data and targets
+        x, y = batch
         logits = self.forward(x)
-        log_p = F.log_softmax(logits, dim=-1)
-        # Soft cross-entropy: –∑ y_soft * log p
-        loss = -(y_soft * log_p).sum(dim=1).mean()
+        y_pred = logits.softmax(dim=-1)
+        loss = F.cross_entropy(y_pred, y, label_smoothing=0.1 if self.n_layers else 0)
         self.log("finetuning/train_loss", loss, on_step=False, on_epoch=True)
         return loss
     
