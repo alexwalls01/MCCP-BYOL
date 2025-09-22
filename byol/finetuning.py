@@ -136,29 +136,30 @@ class FineTune(pl.LightningModule):
                 set_grads(layer, True)
     
     def training_step(self, batch, batch_idx):
-        # Load data and targets
-        x, y, _ = batch
+        # Load data and soft targets
+        x, y_soft, _ = batch               # y_soft: FloatTensor of shape [B, C], sums to 1
+        # Forward pass
         logits = self.forward(x)
-        y_pred = logits.softmax(dim=-1)
-        loss = F.cross_entropy(y_pred, y, label_smoothing=0.1 if self.n_layers else 0)
+        log_p = F.log_softmax(logits, dim=-1)
+        # Soft cross-entropy: –∑ y_soft * log p
+        loss = -(y_soft * log_p).sum(dim=1).mean()
         self.log("finetuning/train_loss", loss, on_step=False, on_epoch=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
-        x, y, _ = batch                # y_soft: FloatTensor[B,3]
+        x, y_soft, _ = batch                # y_soft: FloatTensor[B,3]
         logits = self.forward(x)
         preds = torch.argmax(logits, dim=1)    # LongTensor[B]
-        #target_hard = torch.argmax(y_soft, dim=1)  # LongTensor[B]
-        target_hard = y
+        target_hard = torch.argmax(y_soft, dim=1)  # LongTensor[B]
         self.val_acc(preds, target_hard)
         self.log("finetuning/val_acc", self.val_acc, on_step=False, on_epoch=True)
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
-        x, y, _ = batch
+        x, y_soft, _ = batch
         name = list(self.trainer.datamodule.data["test"].keys())[dataloader_idx]
+
         preds = self.forward(x)
-        #target_hard = torch.argmax(y_soft, dim=1)  # LongTensor[B]
-        target_hard = y
+        target_hard = torch.argmax(y_soft, dim=1)  # LongTensor[B]
         self.test_acc[dataloader_idx](preds, target_hard)
         self.log(
             f"finetuning/test/{name}_acc",

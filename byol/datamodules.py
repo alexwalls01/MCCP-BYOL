@@ -479,38 +479,44 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 aug_type="torchvision",
                 train=True,
                 transform=self.train_transform,
-            )
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
+            self.data["train_test"] = MBFRFull(
+                self.path,
+                aug_type="torchvision",
+                train=False,
+                transform=self.train_transform,
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
             self.data["val"] = MBFRFull(
                 self.path,
                 aug_type="torchvision",
                 train=True,
                 transform=self.test_transform,
-            )
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
             self.data["calibration"] = MBFRFull(
                 self.path,
                 aug_type="torchvision",
                 train=False,
                 calibration=True,
                 transform=self.test_transform,
-            )
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
             self.data["test_conf"] = MBFRConfidentNoHybrids(
                 self.path,
                 aug_type="torchvision",
                 train=False,
                 transform=self.test_transform,
-            )
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
             self.data["test_uncert"] = MBFRUncertainNoHybrids(
                 self.path,
                 aug_type="torchvision",
                 train=False,
                 transform=self.test_transform,
-            )
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
             self.data["test_hybrids"] = Hybrids(
                 self.path,
                 aug_type="torchvision",
                 train=False,
                 transform=self.test_transform,
-            )
+            ).with_annotator_labels(self.label_dist, self.RA_dec)
             self.data["rgz"] = RGZ108k(
                 "/share/nas2_3/awalls/fr-mccp/_data/rgz",
                 train=True,
@@ -525,14 +531,14 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                     train=False,
                     test_size=None,
                     transform=self.test_transform,
-                ),
+                ).with_annotator_labels(self.label_dist, self.RA_dec),
                 "MB_unc_test": MBFRUncertain(
                     self.path,
                     aug_type="torchvision",
                     train=False,
                     test_size=None,
                     transform=self.test_transform,
-                ),
+                ).with_annotator_labels(self.label_dist, self.RA_dec),
             },
         )
 
