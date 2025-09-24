@@ -22,7 +22,7 @@ RUN_ID = os.environ.get("RUN_ID", "0")
 PROJECT = os.environ.get("PROJECT", "0")
 DIR = os.environ.get("DIR", "0")
 CKPT_NAME = os.environ.get("CKPT_NAME", "0")
-ALPHA = os.environ.get("ALPHA", 0)
+ALPHA = float(os.environ.get("ALPHA", 0))
 
 class Reducer:
     
@@ -247,7 +247,7 @@ def calculate_threshold(calibration_set, alpha):
         score = 1 - softmax[target]
         non_conformity_scores.append(score)
     non_conformity_scores = np.array(non_conformity_scores)
-    threshold = np.quantile(non_conformity_scores, 1 - alpha)
+    threshold = np.quantile(non_conformity_scores, np.floor(alpha(len(calibration_set) + 1)) / len(calibration_set))
     return threshold
 
 def create_prediction_sets(model, threshold, label_dist, RA_dec, stage):
@@ -424,7 +424,7 @@ def main():
         filename = mb_test_predictions[i]["filename"]
         mb_test_predictions[i]["label_dist"] = mb_test.with_annotator_labels(label_dist, RA_dec).get_dist(filename)
         mb_test_predictions[i]["label_entropy"] = mb_test.with_annotator_labels(label_dist, RA_dec).get_annotator_entropy()[i]
-        with open(save_dir + '/test_predictions.pkl', 'wb') as file:
+        with open(save_dir + '/test_predictions_' + str(1 - ALPHA) + '.pkl', 'wb') as file:
             pickle.dump(mb_test_predictions, file)
 
     for i in range (0, len(mb_train_predictions)):
@@ -433,7 +433,7 @@ def main():
         filename = mb_train_predictions[i]["filename"]
         mb_train_predictions[i]["label_dist"] = mb_train.with_annotator_labels(label_dist, RA_dec).get_dist(filename)
         mb_train_predictions[i]["label_entropy"] = mb_train.with_annotator_labels(label_dist, RA_dec).get_annotator_entropy()[i]
-        with open(save_dir + '/train_predictions.pkl', 'wb') as file:
+        with open(save_dir + '/train_predictions_' + str(1 - ALPHA) + '.pkl', 'wb') as file:
             pickle.dump(mb_train_predictions, file)
 
     for i in range (0, len(mb_conf_test_predictions)):
@@ -443,7 +443,7 @@ def main():
         mb_conf_test_predictions[i]["label_dist"] = mb_conf_test.with_annotator_labels(label_dist, RA_dec).get_dist(filename)
         mb_conf_test_predictions[i]["label_entropy"] = mb_conf_test.with_annotator_labels(label_dist, RA_dec).get_annotator_entropy()[i]
         mb_conf_test_predictions[i]["predictive_entropy"] = hmc_conf_test[i]
-        with open(save_dir + '/conf_test_predictions.pkl', 'wb') as file:
+        with open(save_dir + '/conf_test_predictions_' + str(1 - ALPHA) + '.pkl', 'wb') as file:
             pickle.dump(mb_conf_test_predictions, file)
 
     for i in range (0, len(mb_uncert_test_predictions)):
@@ -453,7 +453,7 @@ def main():
         mb_uncert_test_predictions[i]["label_dist"] = mb_uncert_test.with_annotator_labels(label_dist, RA_dec).get_dist(filename)
         mb_uncert_test_predictions[i]["label_entropy"] = mb_uncert_test.with_annotator_labels(label_dist, RA_dec).get_annotator_entropy()[i]
         mb_uncert_test_predictions[i]["predictive_entropy"] = hmc_uncert_test[i]
-        with open(save_dir + '/uncert_test_predictions.pkl', 'wb') as file:
+        with open(save_dir + '/uncert_test_predictions_' + str(1 - ALPHA) + '.pkl', 'wb') as file:
             pickle.dump(mb_uncert_test_predictions, file)
 
     for i in range (0, len(mb_hybrids_test_predictions)):
@@ -463,7 +463,7 @@ def main():
         mb_hybrids_test_predictions[i]["label_dist"] = mb_hybrids_test.with_annotator_labels(label_dist, RA_dec).get_dist(filename)
         mb_hybrids_test_predictions[i]["label_entropy"] = mb_hybrids_test.with_annotator_labels(label_dist, RA_dec).get_annotator_entropy()[i]
         mb_hybrids_test_predictions[i]["predictive_entropy"] = hmc_hybrids_test[i]
-        with open(save_dir + '/conf_hybrids_predictions.pkl', 'wb') as file:
+        with open(save_dir + '/conf_hybrids_predictions_' + str(1 - ALPHA) + '.pkl', 'wb') as file:
             pickle.dump(mb_hybrids_test_predictions, file)
     
 if __name__ == "__main__":
