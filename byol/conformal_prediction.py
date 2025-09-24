@@ -292,6 +292,7 @@ def create_prediction_sets(model, threshold, label_dist, RA_dec, stage):
 
 def get_reducer(model, save_dir, run_id, transform):
 
+    paths = Path_Handler()._dict()
     encoder = model.encoder
     encoder.eval()
     reducer_path = os.path.join(save_dir, run_id + "_reducer.pkl")
