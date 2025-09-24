@@ -248,7 +248,7 @@ def calculate_threshold(calibration_set, alpha):
         score = 1 - softmax[target]
         non_conformity_scores.append(score)
     non_conformity_scores = np.array(non_conformity_scores)
-    threshold = np.quantile(non_conformity_scores, np.floor(alpha(len(calibration_set) + 1)) / len(calibration_set))
+    threshold = np.quantile(non_conformity_scores, np.floor(alpha * (len(calibration_set) + 1)) / len(calibration_set))
     return threshold
 
 def create_prediction_sets(model, threshold, label_dist, RA_dec, stage):
