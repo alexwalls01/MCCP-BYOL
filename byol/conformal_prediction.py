@@ -248,7 +248,7 @@ def calculate_threshold(calibration_set, alpha, save_dir):
         score = 1 - softmax[target]
         non_conformity_scores.append(score)
     non_conformity_scores = np.sort(np.array(non_conformity_scores))
-    threshold = non_conformity_scores[np.floor(alpha * (len(calibration_set) + 1)) - 1]
+    threshold = non_conformity_scores[int(np.floor(alpha * (len(calibration_set) + 1)) - 1)]
     with open(save_dir + '/non_conformity_scores_' + str(1 - alpha) + '.pkl', 'wb') as file:
         pickle.dump(non_conformity_scores, file)
     return threshold
