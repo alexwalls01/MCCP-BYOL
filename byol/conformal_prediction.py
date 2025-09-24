@@ -22,7 +22,7 @@ RUN_ID = os.environ.get("RUN_ID", "0")
 PROJECT = os.environ.get("PROJECT", "0")
 DIR = os.environ.get("DIR", "0")
 CKPT_NAME = os.environ.get("CKPT_NAME", "0")
-ALPHA = float(os.environ.get("ALPHA", 0))
+ALPHA = os.environ.get("ALPHA", 0)
 
 class Reducer:
     
@@ -240,6 +240,7 @@ def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec):
     return calibration_set
 
 def calculate_threshold(calibration_set, alpha):
+    alpha = np.float64(alpha)
     non_conformity_scores = []
     for sample in calibration_set:
         softmax = F.softmax(torch.tensor(sample["logits"]), dim=0).tolist()
