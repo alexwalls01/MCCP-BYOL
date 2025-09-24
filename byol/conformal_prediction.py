@@ -410,7 +410,7 @@ def main():
     mb_train_umap = get_umap_embedding(mb_train, model, reducer)
     mb_conf_test_umap = get_umap_embedding(mb_conf_test, model, reducer)
     mb_uncert_test_umap = get_umap_embedding(mb_uncert_test, model, reducer)
-    mb_hyrbids_test_umap = get_umap_embedding(mb_hybrids_test, model, reducer)
+    mb_hybrids_test_umap = get_umap_embedding(mb_hybrids_test, model, reducer)
 
     # Get predictive entropy
     hmc_entropy = np.genfromtxt(config["conformal_prediction"]["hmc_data"], delimiter=',', skip_header=1)
