@@ -239,7 +239,7 @@ def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec):
 
     return calibration_set
 
-def calculate_threshold(calibration_set, alpha):
+def calculate_threshold(calibration_set, alpha, save_dir):
     alpha = np.float64(alpha)
     non_conformity_scores = []
     for sample in calibration_set:
@@ -247,8 +247,10 @@ def calculate_threshold(calibration_set, alpha):
         target = sample["class"]
         score = 1 - softmax[target]
         non_conformity_scores.append(score)
-    non_conformity_scores = np.array(non_conformity_scores)
-    threshold = np.quantile(non_conformity_scores, np.floor(alpha * (len(calibration_set) + 1)) / len(calibration_set))
+    non_conformity_scores = np.sort(np.array(non_conformity_scores))
+    threshold = non_conformity_scores[np.floor(alpha * (len(calibration_set) + 1)) - 1]
+    with open(save_dir + '/non_conformity_scores_' + str(1 - alpha) + '.pkl', 'wb') as file:
+        pickle.dump(non_conformity_scores, file)
     return threshold
 
 def create_prediction_sets(model, threshold, label_dist, RA_dec, stage):
@@ -399,7 +401,7 @@ def main():
     
     # Get prediction sets
     calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
-    threshold = calculate_threshold(calibration_set, ALPHA)
+    threshold = calculate_threshold(calibration_set, ALPHA, save_dir)
     mb_test_predictions = create_prediction_sets(model, threshold, label_dist, RA_dec, "test")
     mb_train_predictions = create_prediction_sets(model, threshold, label_dist, RA_dec, "train_test")
     mb_conf_test_predictions = create_prediction_sets(model, threshold, label_dist, RA_dec, "test_conf")
