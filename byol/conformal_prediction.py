@@ -287,7 +287,7 @@ def create_prediction_sets(model, threshold, label_dist, RA_dec, stage):
         softmax = F.softmax(torch.tensor(sample["logits"]), dim=0).tolist()
         sample["softmax"] = softmax
         for i in range(3):
-            if 1 - softmax[i] <= threshold:
+            if 1 - softmax[i] > threshold:
                 prediction_set.append(softmax[i])
             else:
                 prediction_set.append(0)
