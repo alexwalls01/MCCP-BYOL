@@ -247,7 +247,7 @@ def calculate_threshold(calibration_set, alpha, save_dir):
     for sample in calibration_set:
         softmax = F.softmax(torch.tensor(sample["logits"]), dim=0).tolist()
         target = sample["class"]
-        score = 1 - softmax[target]
+        score = softmax[target]
         non_conformity_scores.append(score)
     non_conformity_scores = np.sort(np.array(non_conformity_scores))
     threshold = non_conformity_scores[int(np.floor(alpha * (len(calibration_set) + 1)) - 1)]
@@ -287,7 +287,7 @@ def create_prediction_sets(model, threshold, label_dist, RA_dec, stage):
         softmax = F.softmax(torch.tensor(sample["logits"]), dim=0).tolist()
         sample["softmax"] = softmax
         for i in range(3):
-            if 1 - softmax[i] > threshold:
+            if softmax[i] > threshold:
                 prediction_set.append(softmax[i])
             else:
                 prediction_set.append(0)
