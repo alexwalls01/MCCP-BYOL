@@ -209,6 +209,7 @@ def load_dataloader(stage, label_dist=None, RA_dec=None):
     return dataloader
 
 def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec, alpha, save_dir):
+    alpha = np.float64(alpha)
 
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     prediction_loader = load_dataloader("calibration", label_dist=label_dist, RA_dec=RA_dec)
