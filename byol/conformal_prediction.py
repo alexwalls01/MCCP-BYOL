@@ -208,7 +208,7 @@ def load_dataloader(stage, label_dist=None, RA_dec=None):
         raise ValueError("Unsupported dataloader stage.")
     return dataloader
 
-def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec):
+def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec, alpha, save_dir):
 
     trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu", devices=1)
     prediction_loader = load_dataloader("calibration", label_dist=label_dist, RA_dec=RA_dec)
@@ -239,6 +239,9 @@ def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec):
             duplicate_sample["class"] = sampled_target
             calibration_set.append(duplicate_sample)
 
+    with open(save_dir + '/calibration_set_' + str(1 - alpha) + '.pkl', 'wb') as file:
+        pickle.dump(calibration_set, file)
+
     return calibration_set
 
 def calculate_threshold(calibration_set, alpha, save_dir):
@@ -249,10 +252,10 @@ def calculate_threshold(calibration_set, alpha, save_dir):
         target = sample["class"]
         score = softmax[target]
         non_conformity_scores.append(score)
-    non_conformity_scores = np.sort(np.array(non_conformity_scores))
-    threshold = non_conformity_scores[int(np.floor(alpha * (len(calibration_set) + 1)) - 1)]
     with open(save_dir + '/non_conformity_scores_' + str(1 - alpha) + '.pkl', 'wb') as file:
         pickle.dump(non_conformity_scores, file)
+    non_conformity_scores = np.sort(np.array(non_conformity_scores))
+    threshold = non_conformity_scores[int(np.floor(alpha * (len(calibration_set) + 1)) - 1)]
     return threshold
 
 def create_prediction_sets(model, threshold, label_dist, RA_dec, stage):
@@ -402,7 +405,7 @@ def main():
 
     
     # Get prediction sets
-    calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec)
+    calibration_set = create_calibration_set(model, mb_calibration, 1, label_dist, RA_dec, ALPHA, save_dir)
     threshold = calculate_threshold(calibration_set, ALPHA, save_dir)
     mb_test_predictions = create_prediction_sets(model, threshold, label_dist, RA_dec, "test")
     mb_train_predictions = create_prediction_sets(model, threshold, label_dist, RA_dec, "train_test")
