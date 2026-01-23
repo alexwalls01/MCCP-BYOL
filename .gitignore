@@ -9,8 +9,9 @@ __pycache__
 wandb
 files
 
-_data
 .venv
+_data
+scripts
 
 .vscode
 files/wandb
