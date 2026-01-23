@@ -75,7 +75,7 @@ class MiraBest_F(data.Dataset):
         self,
         root,
         train: Optional[bool] = True,
-        calibration: Optional[bool] = True,
+        calibration: Optional[bool] = False,
         transform=None,
         target_transform=None,
         download=False,
@@ -102,7 +102,7 @@ class MiraBest_F(data.Dataset):
         if self.train and test_size is None:
             if calibration_batch is not None:
                 if calibration:
-                    downloaded_list = self.train_list[calibration_batch]
+                    downloaded_list = [self.train_list[calibration_batch]]
                 else:
                     downloaded_list = self.train_list
                     del downloaded_list[calibration_batch]
