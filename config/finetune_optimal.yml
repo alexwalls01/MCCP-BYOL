@@ -1,11 +1,12 @@
 finetune:
-  run_id: 'none'
+  run_id: 'MB'
+  project: 'MCCP-BYOL'
+  seed: 42
 
   preset: 'optimal'
   dataset: 'mb'
   n_layers: -1 # -1 finetunes all layers
-  n_classes: 2 
-  iterations: 10
+  n_classes: 3 
   lr_decay: 0.75
   n_epochs: 300
   batch_size: 64
