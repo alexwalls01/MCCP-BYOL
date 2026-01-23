@@ -306,11 +306,7 @@ def main():
     for calibration_batch in range(0, 7):
     #for seed in range(config_finetune["finetune"]["iterations"]):
 
-        if config_finetune["finetune"]["run_id"].lower() != "none":
-            experiment_dir = paths["files"] / config_finetune["finetune"]["run_id"] / "checkpoints"
-            model = BYOL.load_from_checkpoint(experiment_dir / "last.ckpt")
-        else:
-            model = BYOL.load_from_checkpoint("byol.ckpt")
+        model = BYOL.load_from_checkpoint("byol.ckpt")
 
         ## Load up config from model to save correct hparams for easy logging ##
         config = model.config
