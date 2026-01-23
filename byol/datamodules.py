@@ -427,7 +427,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 train=True,
                 calibration=True,
                 transform=self.test_transform,
-                calibration_batch=self.calibration_batch
+                calibration_batch=self.calibration_batch,
                 annotations=True,
             )
 
