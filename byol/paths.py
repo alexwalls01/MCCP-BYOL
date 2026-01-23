@@ -12,7 +12,7 @@ class Path_Handler:
             "project", Path(__file__).resolve().parent.parent
         )  # i.e. this repo
 
-        path_dict["data"] = kwargs.get("data", path_dict["root"] / "_data")
+        path_dict["data"] = kwargs.get("data", path_dict["project"] / "_data")
 
         path_dict["files"] = kwargs.get("files", path_dict["project"] / "files")
         path_dict["main"] = kwargs.get("main", path_dict["project"] / "byol")

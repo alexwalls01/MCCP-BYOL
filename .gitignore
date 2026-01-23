@@ -9,6 +9,9 @@ __pycache__
 wandb
 files
 
+_data
+.venv
+
 .vscode
 files/wandb
 run_ids.txt
