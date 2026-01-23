@@ -1,13 +1,14 @@
 finetune:
   # resnet sizes 
-  run_id: 'none' # resnet-18 
-  seed: 69
+  run_id: 'fr-mccp' # resnet-18
+  project: 'fr-mccp-byol'
+  seed: 42
+  label_dists: '/share/nas2_3/awalls/phd/github/byol/label_dists.pkl'
 
   preset: 'optimal'
   dataset: 'mb'
   n_layers: 0 # -1 finetunes all layers
-  n_classes: 2 
-  iterations: 10
+  n_classes: 3 
   lr_decay: 0.75
   n_epochs: 300
   batch_size: 64

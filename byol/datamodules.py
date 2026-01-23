@@ -12,8 +12,6 @@ from torch.utils.data import Subset
 from byol.utilities import rgz_cut, train_val_test_split
 from byol.paths import Path_Handler
 from byol.datasets import MBFRConfident, MBFRUncertain, RGZ108k, MBFRFull
-
-
 class SimpleView(nn.Module):
     def __init__(self, config, mu=(0,), sig=(1,)):
         super().__init__()
@@ -331,6 +329,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
         prefetch_factor=20,
         pin_memory=False,
         seed=69,
+        calibration_batch=None,
     ):
         super().__init__(
             path,
@@ -366,6 +365,8 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 T.Normalize(self.mu, self.sig),
             ]
         )
+
+        self.calibration_batch = calibration_batch
 
     def prepare_data(self):
         pass
@@ -404,17 +405,30 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
             )
 
         else:
-            self.data["train"] = MBFRConfident(
+            self.data["train"] = MBFRFull(
                 self.path,
                 aug_type="torchvision",
                 train=True,
                 transform=self.train_transform,
+                calibration_batch=self.calibration_batch,
+                annotations=True,
             )
-            self.data["val"] = MBFRConfident(
+            self.data["val"] = MBFRFull(
                 self.path,
                 aug_type="torchvision",
                 train=True,
                 transform=self.test_transform,
+                calibration_batch=self.calibration_batch,
+                annotations=True,
+            )
+            self.data["calibration"] = MBFRFull(
+                self.path,
+                aug_type="torchvision",
+                train=True,
+                calibration=True,
+                transform=self.test_transform,
+                calibration_batch=self.calibration_batch
+                annotations=True,
             )
 
         self.data["test"] = OrderedDict(
@@ -425,6 +439,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                     train=False,
                     test_size=None,
                     transform=self.test_transform,
+                    annotations=True,
                 ),
                 "MB_unc_test": MBFRUncertain(
                     self.path,
@@ -432,6 +447,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                     train=False,
                     test_size=None,
                     transform=self.test_transform,
+                    annotations=True,
                 ),
             },
         )

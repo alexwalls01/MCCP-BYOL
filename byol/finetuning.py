@@ -47,7 +47,7 @@ class FineTune(pl.LightningModule):
         n_layers=0,
         batch_size=1024,
         lr_decay=0.75,
-        seed=69,
+        seed=42,
         **kwargs,
     ):
         super().__init__()
@@ -303,8 +303,8 @@ def main():
     config_finetune = load_config_finetune()
 
     ## Run finetuning ##
-    for seed in range(config_finetune["finetune"]["iterations"]):
-        # for seed in range(1, 10):
+    for calibration_batch in range(0, 7):
+    #for seed in range(config_finetune["finetune"]["iterations"]):
 
         if config_finetune["finetune"]["run_id"].lower() != "none":
             experiment_dir = paths["files"] / config_finetune["finetune"]["run_id"] / "checkpoints"
@@ -321,9 +321,9 @@ def main():
         if config["augmentations"]["center_crop"] is True:
             config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
 
-        project_name = "BYOL_finetune_reproduce"
+        project_name = config["finetune"]["project"]
 
-        config["finetune"]["seed"] = seed
+        seed = config["finetune"]["seed"]
         pl.seed_everything(seed)
 
         # Initiate wandb logging
@@ -331,20 +331,22 @@ def main():
 
         logger = pl.loggers.WandbLogger(
             project=project_name,
-            save_dir=paths["files"] / "finetune" / str(wandb.run.id),
+            save_dir=paths["files"] / "finetune" / str(wandb.run.id) + f"_calibrationbatch{calibration_batch}",
             reinit=True,
             config=config,
         )
+        logger.experiment.config["calibration_batch"] = calibration_batch
 
         finetune_datamodule = RGZ_DataModule_Finetune(
-            paths["rgz"],
+            paths["mb"],
             batch_size=config["finetune"]["batch_size"],
             center_crop=config["augmentations"]["center_crop"],
             val_size=config["finetune"]["val_size"],
             num_workers=config["dataloading"]["num_workers"],
             prefetch_factor=config["dataloading"]["prefetch_factor"],
             pin_memory=config["dataloading"]["pin_memory"],
-            seed=config["finetune"]["seed"],
+            seed=seed,
+            calibration_batch=calibration_batch,
         )
         run_finetuning(config, model.encoder, finetune_datamodule, logger)
         logger.experiment.finish()
