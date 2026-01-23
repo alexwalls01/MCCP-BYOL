@@ -231,8 +231,10 @@ def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec, alpha, 
         sample["label_dist"] = dist
 
     calibration_set = []
+    calibration_set_file = []
     for sample in predictions:
         calibration_set.append(sample)
+        calibration_set_file.append(sample)
         for i in range(m):
             # Sample new label according to label distribution
             sampled_target = np.random.choice([0, 1, 2], p=sample["label_dist"])
@@ -241,7 +243,7 @@ def create_calibration_set(model, mb_calibration, m, label_dist, RA_dec, alpha, 
             calibration_set.append(duplicate_sample)
 
     with open(save_dir + '/calibration_set_' + str(1 - alpha) + '.pkl', 'wb') as file:
-        pickle.dump(calibration_set, file)
+        pickle.dump(calibration_set_file, file)
 
     return calibration_set
 
@@ -344,7 +346,7 @@ def main():
     paths = Path_Handler()._dict()
 
     ckpt_path = DIR + '/finetune/' + RUN_ID + '/' + PROJECT + '/' + RUN_ID + '/checkpoints/' + CKPT_NAME
-    save_dir = DIR + '/conformal_prediction/' + PROJECT + '/' + RUN_ID
+    save_dir = DIR + '/conformal_prediction/corrections/' + PROJECT + '/' + RUN_ID
     os.makedirs(save_dir, exist_ok=True)
 
     finetune_config = load_config_finetune()

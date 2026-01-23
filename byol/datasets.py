@@ -103,7 +103,7 @@ class MiraBest_F(data.Dataset):
 
         if self.train and test_size is None:
             downloaded_list = self.train_list
-        elif not self.train and test_size is None:
+        elif not self.train and test_size is None and not self.calibration:
             downloaded_list = self.test_list
         elif not self.train and self.calibration:
             downloaded_list = self.calibration_list
