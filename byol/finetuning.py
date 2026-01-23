@@ -331,7 +331,7 @@ def main():
 
         logger = pl.loggers.WandbLogger(
             project=project_name,
-            save_dir=paths["files"] / "finetune" / str(wandb.run.id) + f"_calibrationbatch{calibration_batch + 1}",
+            save_dir=paths["files"] / "finetune" / str(wandb.run.id) + f"_calibration_batch_{calibration_batch + 1}",
             reinit=True,
             config=config,
         )

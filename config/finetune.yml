@@ -1,7 +1,7 @@
 finetune:
   # resnet sizes 
-  run_id: 'fr-mccp' # resnet-18
-  project: 'fr-mccp-byol'
+  run_id: 'MB' # resnet-18
+  project: 'MCCP-BYOL'
   seed: 42
 
   preset: 'optimal'
