@@ -325,9 +325,10 @@ def main():
         # Initiate wandb logging
         wandb.init(project=project_name, config=config)
 
+        dir_name = str(wandb.run.id) + f"_calibration_batch_{calibration_batch + 1}"
         logger = pl.loggers.WandbLogger(
             project=project_name,
-            save_dir=paths["files"] / "finetune" / str(wandb.run.id) + f"_calibration_batch_{calibration_batch + 1}",
+            save_dir=paths["files"] / "finetune" / dir_name,
             reinit=True,
             config=config,
         )
