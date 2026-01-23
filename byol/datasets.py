@@ -25,7 +25,7 @@ from torchvision.transforms.functional import center_crop, resize
 
 from byol.utilities import rgz_cut
 from byol.paths import Path_Handler
-from config import load_config_finetune
+from byol.config import load_config_finetune
 
 
 class MiraBest_F(data.Dataset):
@@ -136,8 +136,8 @@ class MiraBest_F(data.Dataset):
                     self.filenames.extend(entry["filenames"])
         
         if annotations:
-            config = load_config_finetune()
-            with open(config["finetune"]["label_dists"], "rb") as f:
+            paths = Path_Handler()._dict()
+            with open(paths["data"] / "label_dists.pkl", "rb") as f:
                 label_dists = pickle.load(f)
             for idx, filename in enumerate(self.filenames):
                 label_dist = label_dists[filename]
