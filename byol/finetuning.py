@@ -1,6 +1,5 @@
 import argparse
 import wandb
-import pytorch_lightning as pl
 import logging
 import pytorch_lightning as pl
 import torch
@@ -8,14 +7,12 @@ import torchmetrics as tm
 import torch.nn.functional as F
 import torch.nn as nn
 
-from pathlib import Path
 from einops import rearrange
-from typing import Any, Dict, List, Tuple, Type, Union
 from torch import Tensor
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
 from paths import Path_Handler
-from config import load_config, update_config, load_config_finetune
+from config import load_config_finetune
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
 
