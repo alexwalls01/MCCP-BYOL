@@ -335,6 +335,7 @@ class MBFRConfident(MiraBest_F):
         self.data = self.data[exclude_mask]
         self.targets = targets[exclude_mask].tolist()
         self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+        self.filenames = self.filenames[exclude_mask]
 
         if self.use_annotations:
             self.use_human_annotations()
@@ -369,6 +370,7 @@ class MBFRUncertain(MiraBest_F):
         self.data = self.data[exclude_mask]
         self.targets = targets[exclude_mask].tolist()
         self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+        self.filenames = self.filenames[exclude_mask]
         if self.use_annotations:
             self.use_human_annotations()
 
