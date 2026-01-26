@@ -1,6 +1,4 @@
 finetune:
-  # resnet sizes 
-  run_id: 'MB' # resnet-18
   project: 'MCCP-BYOL'
   seed: 42
 

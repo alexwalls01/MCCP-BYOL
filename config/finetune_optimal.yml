@@ -1,5 +1,4 @@
 finetune:
-  run_id: 'MB'
   project: 'MCCP-BYOL'
   seed: 42
 

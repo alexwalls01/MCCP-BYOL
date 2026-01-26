@@ -1,3 +1,4 @@
+import argparse
 import wandb
 import pytorch_lightning as pl
 import logging
@@ -18,6 +19,10 @@ from config import load_config, update_config, load_config_finetune
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--wandb-group", type=str, required=False, default=None)
+parser.add_argument("--calibration-batch", type=int, required=False, default=None)
+args = parser.parse_args()
 
 class LogisticRegression(torch.nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -303,37 +308,36 @@ def main():
     config_finetune = load_config_finetune()
 
     ## Run finetuning ##
-    for calibration_batch in range(0, 7):
-    #for seed in range(config_finetune["finetune"]["iterations"]):
+    model = BYOL.load_from_checkpoint("byol.ckpt")
 
-        model = BYOL.load_from_checkpoint("byol.ckpt")
+    ## Load up config from model to save correct hparams for easy logging ##
+    config = model.config
+    config.update(config_finetune)
+    config["finetune"]["dim"] = model.encoder.dim
 
-        ## Load up config from model to save correct hparams for easy logging ##
-        config = model.config
-        config.update(config_finetune)
-        config["finetune"]["dim"] = model.encoder.dim
+    # Compatibility with old style config
+    if config["augmentations"]["center_crop"] is True:
+        config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
 
-        # Compatibility with old style config
-        if config["augmentations"]["center_crop"] is True:
-            config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
+    project_name = config["finetune"]["project"]
 
-        project_name = config["finetune"]["project"]
+    seed = config["finetune"]["seed"]
+    pl.seed_everything(seed)
 
-        seed = config["finetune"]["seed"]
-        pl.seed_everything(seed)
+    # Initiate wandb logging
+    wandb.init(project=project_name, config=config)
 
-        # Initiate wandb logging
-        wandb.init(project=project_name, config=config)
-
-        dir_name = str(wandb.run.id) + f"_calibration_batch_{calibration_batch + 1}"
+    if args.calibration_batch is not None:
+        dir_name = args.wandb_group + f"_CB{args.calibration_batch + 1}"
         logger = pl.loggers.WandbLogger(
             project=project_name,
+            group=args.wandb_group,
+            name=f"CB{args.calibration_batch + 1}",
             save_dir=paths["files"] / "finetune" / dir_name,
             reinit=True,
             config=config,
         )
-        logger.experiment.config["calibration_batch"] = calibration_batch
-
+        logger.experiment.config["calibration_batch_idx"] = args.calibration_batch
         finetune_datamodule = RGZ_DataModule_Finetune(
             paths["mb"],
             batch_size=config["finetune"]["batch_size"],
@@ -343,11 +347,30 @@ def main():
             prefetch_factor=config["dataloading"]["prefetch_factor"],
             pin_memory=config["dataloading"]["pin_memory"],
             seed=seed,
-            calibration_batch=calibration_batch,
+            calibration_batch=args.calibration_batch,
         )
-        run_finetuning(config, model.encoder, finetune_datamodule, logger)
-        logger.experiment.finish()
-        wandb.finish()
+    else:
+        dir_name = args.wandb_group + "_" + str(wandb.run.id)
+        logger = pl.loggers.WandbLogger(
+            project=project_name,
+            group=args.wandb_group,
+            save_dir=paths["files"] / "finetune" / dir_name,
+            reinit=True,
+            config=config,
+        )
+        finetune_datamodule = RGZ_DataModule_Finetune(
+            paths["mb"],
+            batch_size=config["finetune"]["batch_size"],
+            center_crop=config["augmentations"]["center_crop"],
+            val_size=config["finetune"]["val_size"],
+            num_workers=config["dataloading"]["num_workers"],
+            prefetch_factor=config["dataloading"]["prefetch_factor"],
+            pin_memory=config["dataloading"]["pin_memory"],
+            seed=seed
+        )
+    run_finetuning(config, model.encoder, finetune_datamodule, logger)
+    logger.experiment.finish()
+    wandb.finish()
 
 
 if __name__ == "__main__":

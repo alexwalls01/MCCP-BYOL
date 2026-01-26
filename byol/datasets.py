@@ -104,8 +104,10 @@ class MiraBest_F(data.Dataset):
                 if calibration:
                     downloaded_list = [self.train_list[calibration_batch]]
                 else:
-                    downloaded_list = self.train_list
-                    del downloaded_list[calibration_batch]
+                    downloaded_list = [
+                        batch for i, batch in enumerate(self.train_list)
+                        if i != calibration_batch
+                        ]
             else:
                 downloaded_list = self.train_list
         elif not self.train and test_size is None:
