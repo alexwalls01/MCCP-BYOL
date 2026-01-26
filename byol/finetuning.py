@@ -339,7 +339,6 @@ def main():
             name=f"CB{args.calibration_batch + 1}",
             save_dir=paths["files"] / "finetune" / dir_name,
             config=config,
-            log_freq=1,
         )
         logger.experiment.config["calibration_batch_idx"] = args.calibration_batch
         finetune_datamodule = RGZ_DataModule_Finetune(
@@ -360,7 +359,6 @@ def main():
             group=args.wandb_group,
             save_dir=paths["files"] / "finetune" / dir_name,
             config=config,
-            log_freq=1,
         )
         finetune_datamodule = RGZ_DataModule_Finetune(
             paths["mb"],
