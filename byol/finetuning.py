@@ -147,7 +147,7 @@ class FineTune(pl.LightningModule):
         label_counts = {f"class_{u.item()}": c.item() for u, c in zip(unique, counts)}
         for k, v in label_counts.items():
             self.log(f"labels/{k}", v, on_step=True, on_epoch=False)
-        loss = F.cross_entropy(logits, y, label_smoothing=0.1 if self.n_layers else 0)
+        loss = F.cross_entropy(logits, y)
         self.log("finetuning/train_loss", loss, on_step=False, on_epoch=True)
         return loss
 
