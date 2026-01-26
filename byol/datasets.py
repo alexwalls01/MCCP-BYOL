@@ -194,6 +194,7 @@ class MiraBest_F(data.Dataset):
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
         img = np.reshape(img, (150, 150))
+        target = torch.tensor(target, dtype=torch.float32)
 
         if self.aug_type == "albumentations":
             if self.transform is not None:
@@ -262,7 +263,7 @@ class MiraBest_F(data.Dataset):
             label_dists = pickle.load(f)
         for idx, filename in enumerate(self.filenames):
             label_dist = label_dists[filename]
-            self.targets[idx] = np.argmax(label_dist)
+            self.targets[idx] = label_dist
 
 
 class MBFRFull(MiraBest_F):

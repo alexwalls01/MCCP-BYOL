@@ -142,27 +142,34 @@ class FineTune(pl.LightningModule):
         # Load data and targets
         x, y, _ = batch
         logits = self.forward(x)
-        # Log label distribution for this batch
-        unique, counts = torch.unique(y, return_counts=True)
-        label_counts = {f"class_{u.item()}": c.item() for u, c in zip(unique, counts)}
-        for k, v in label_counts.items():
-            self.log(f"labels/{k}", v, on_step=True, on_epoch=False)
-        loss = F.cross_entropy(logits, y)
-        self.log("finetuning/train_loss", loss, on_step=False, on_epoch=True)
+        if y.ndim == 2:
+            # Soft labels
+            log_p = F.log_softmax(logits, dim=-1)
+            loss = -(y * log_p).sum(dim=1).mean()
+        else:
+            # Hard labels
+            loss = F.cross_entropy(logits, y)
         return loss
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         x, y, _ = batch
+        if y.ndim == 2:
+            y_hard = y.argmax(dim=1)
+        else:
+            y_hard = y
         preds = self.forward(x)
-        self.val_acc(preds, y)
+        self.val_acc(preds, y_hard)
         self.log("finetuning/val_acc", self.val_acc, on_step=False, on_epoch=True)
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
         x, y, _ = batch
+        if y.ndim == 2:
+            y_hard = y.argmax(dim=1)
+        else:
+            y_hard = y
         name = list(self.trainer.datamodule.data["test"].keys())[dataloader_idx]
-
         preds = self.forward(x)
-        self.test_acc[dataloader_idx](preds, y)
+        self.test_acc[dataloader_idx](preds, y_hard)
         self.log(
             f"finetuning/test/{name}_acc",
             self.test_acc[dataloader_idx],
