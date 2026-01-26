@@ -105,6 +105,12 @@ class FineTune(pl.LightningModule):
 
     def on_fit_start(self):
         # Log size of data-sets #
+        train_len = len(self.trainer.datamodule.train_dataloader().dataset)
+        val_len = len(self.trainer.datamodule.val_dataloader().dataset)
+        test_len = len(self.trainer.datamodule.test_dataloader().dataset)
+        self.log("dataset/train_size", train_len)
+        self.log("dataset/val_size", val_len)
+        self.log("dataset/test_size", test_len)
 
         self.train_acc = tm.Accuracy(
             task="multiclass", average="micro", threshold=0, num_classes=self.n_classes
@@ -113,14 +119,12 @@ class FineTune(pl.LightningModule):
             task="multiclass", average="micro", threshold=0, num_classes=self.n_classes
         ).to(self.device)
 
-        self.test_acc = nn.ModuleList(
-            [
-                tm.Accuracy(
-                    task="multiclass", average="micro", threshold=0, num_classes=self.n_classes
-                ).to(self.device)
-            ]
-            * len(self.trainer.datamodule.data["test"])
-        )
+        self.test_acc = nn.ModuleList([
+            tm.Accuracy(
+                task="multiclass", average="micro", threshold=0, num_classes=self.n_classes
+            ).to(self.device)
+            for _ in self.trainer.datamodule.data["test"]
+        ])
 
         logging_params = {f"n_{key}": len(value) for key, value in self.trainer.datamodule.data.items()}
         self.logger.log_hyperparams(logging_params)
@@ -136,6 +140,11 @@ class FineTune(pl.LightningModule):
         # Load data and targets
         x, y, _ = batch
         logits = self.forward(x)
+        # Log label distribution for this batch
+        unique, counts = torch.unique(y, return_counts=True)
+        label_counts = {f"class_{u.item()}": c.item() for u, c in zip(unique, counts)}
+        for k, v in label_counts.items():
+            self.log(f"labels/{k}", v, on_step=True, on_epoch=False)
         loss = F.cross_entropy(logits, y, label_smoothing=0.1 if self.n_layers else 0)
         self.log("finetuning/train_loss", loss, on_step=False, on_epoch=True)
         return loss
@@ -248,6 +257,7 @@ def run_finetuning(config, encoder, datamodule, logger):
         logger=logger,
         callbacks=callbacks,
         max_epochs=config["finetune"]["n_epochs"],
+        log_every_n_steps=1,
         **config["trainer"],
     )
 
@@ -328,8 +338,8 @@ def main():
             group=args.wandb_group,
             name=f"CB{args.calibration_batch + 1}",
             save_dir=paths["files"] / "finetune" / dir_name,
-            reinit=True,
             config=config,
+            log_freq=1,
         )
         logger.experiment.config["calibration_batch_idx"] = args.calibration_batch
         finetune_datamodule = RGZ_DataModule_Finetune(
@@ -349,8 +359,8 @@ def main():
             project=project_name,
             group=args.wandb_group,
             save_dir=paths["files"] / "finetune" / dir_name,
-            reinit=True,
             config=config,
+            log_freq=1,
         )
         finetune_datamodule = RGZ_DataModule_Finetune(
             paths["mb"],
