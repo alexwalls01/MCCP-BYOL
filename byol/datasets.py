@@ -270,7 +270,7 @@ class MiraBest_F(data.Dataset):
             label_dists = pickle.load(f)
         for idx, filename in enumerate(self.filenames):
             label_dist = label_dists[filename]
-            self.targets[idx] = label_dist
+            self.targets[idx] = np.array(label_dist, dtype=np.float32)
 
 
 class MBFRFull(MiraBest_F):
@@ -309,6 +309,7 @@ class MBFRFull(MiraBest_F):
         self.data = self.data[exclude_mask]
         self.targets = targets[exclude_mask].tolist()
         self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+        self.filenames = np.array(self.filenames)[exclude_mask].tolist()
 
         if self.use_annotations:
             self.use_human_annotations()
