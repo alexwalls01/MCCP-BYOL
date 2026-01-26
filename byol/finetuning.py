@@ -107,10 +107,12 @@ class FineTune(pl.LightningModule):
         # Log size of data-sets #
         train_len = len(self.trainer.datamodule.train_dataloader().dataset)
         val_len = len(self.trainer.datamodule.val_dataloader().dataset)
-        test_len = len(self.trainer.datamodule.test_dataloader().dataset)
         self.log("dataset/train_size", train_len)
         self.log("dataset/val_size", val_len)
-        self.log("dataset/test_size", test_len)
+
+        for name, loader in zip(self.trainer.datamodule.data["test"].keys(),
+                        self.trainer.datamodule.test_dataloader()):
+            self.log(f"dataset/test_size_{name}", len(loader.dataset))
 
         self.train_acc = tm.Accuracy(
             task="multiclass", average="micro", threshold=0, num_classes=self.n_classes
