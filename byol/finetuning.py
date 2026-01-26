@@ -368,7 +368,6 @@ def main():
         )
     run_finetuning(config, model.encoder, finetune_datamodule, logger)
     logger.experiment.finish()
-    wandb.finish()
 
 
 if __name__ == "__main__":
