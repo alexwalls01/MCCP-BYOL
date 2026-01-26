@@ -112,7 +112,7 @@ class FineTune(pl.LightningModule):
             "dataset/val_size": val_len,
             "dataset/test_size_confident": len(self.trainer.datamodule.test_dataloader()[0].dataset),
             "dataset/test_size_uncertain": len(self.trainer.datamodule.test_dataloader()[1].dataset),
-        })
+        }, step=0)
 
         self.train_acc = tm.Accuracy(
             task="multiclass", average="micro", threshold=0, num_classes=self.n_classes

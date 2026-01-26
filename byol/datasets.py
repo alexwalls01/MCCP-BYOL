@@ -83,13 +83,14 @@ class MiraBest_F(data.Dataset):
         aug_type="torchvision",
         data_type="double",
         calibration_batch=None,
-        annotations=False,
+        use_annotations=False,
     ):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
         self.aug_type = aug_type
+        self.use_annotations = use_annotations
 
         if download:
             self.download()
@@ -136,14 +137,6 @@ class MiraBest_F(data.Dataset):
                 else:
                     self.targets.extend(entry["fine_labels"])
                     self.filenames.extend(entry["filenames"])
-        
-        if annotations:
-            paths = Path_Handler()._dict()
-            with open(paths["data"] / "label_dists.pkl", "rb") as f:
-                label_dists = pickle.load(f)
-            for idx, filename in enumerate(self.filenames):
-                label_dist = label_dists[filename]
-                self.targets[idx] = np.argmax(label_dist)
 
         # Extract metadata
         self.las = [float(filename[-11:-4]) for filename in self.filenames]
@@ -262,6 +255,14 @@ class MiraBest_F(data.Dataset):
             tmp, self.target_transform.__repr__().replace("\n", "\n" + " " * len(tmp))
         )
         return fmt_str
+    
+    def use_human_annotations(self):
+        paths = Path_Handler()._dict()
+        with open(paths["data"] / "label_dists.pkl", "rb") as f:
+            label_dists = pickle.load(f)
+        for idx, filename in enumerate(self.filenames):
+            label_dist = label_dists[filename]
+            self.targets[idx] = np.argmax(label_dist)
 
 
 class MBFRFull(MiraBest_F):
@@ -278,48 +279,31 @@ class MBFRFull(MiraBest_F):
         hybrid_list = [8, 9]
         exclude_list = []
 
-        if self.train:
-            targets = np.array(self.targets)
+        targets = np.array(self.targets)
+        exclude = np.array(exclude_list).reshape(1, -1)
+        # Create a mask, with False where we have excluded labels
+        exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
 
-            exclude = np.array(exclude_list).reshape(1, -1)
+        # Create a mask with True where we want to change the label to fri/frii
+        fr1 = np.array(fr1_list).reshape(1, -1)
+        fr2 = np.array(fr2_list).reshape(1, -1)
+        hybrid = np.array(hybrid_list).reshape(1, -1)
+        fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
+        fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
+        hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
 
-            # Create a mask, with False where we have excluded labels
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
+        # Set labels to fri/frii
+        targets[fr1_mask] = 0  # set all FRI to Class~0
+        targets[fr2_mask] = 1  # set all FRII to Class~1
+        targets[hybrid_mask] = 2 # set all Hybrid to Class~2
 
-            # Create a mask with True where we want to change the label to fri/frii
-            fr1 = np.array(fr1_list).reshape(1, -1)
-            fr2 = np.array(fr2_list).reshape(1, -1)
-            hybrid = np.array(hybrid_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
+        # Remove excluded labels
+        self.data = self.data[exclude_mask]
+        self.targets = targets[exclude_mask].tolist()
+        self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
 
-            # Set labels to fri/frii
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            targets[hybrid_mask] = 2 # set all Hybrid to Class~2
-
-            # Remove excluded labels
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
-        else:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(fr1_list).reshape(1, -1)
-            fr2 = np.array(fr2_list).reshape(1, -1)
-            hybrid = np.array(hybrid_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
-
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            targets[hybrid_mask] = 2  # set all Hybrid to Class~2
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+        if self.use_annotations:
+            self.use_human_annotations()
 
 
 class MBFRConfident(MiraBest_F):
@@ -336,40 +320,24 @@ class MBFRConfident(MiraBest_F):
         hybrid_list = [8]
         exclude_list = [3, 4, 7, 9]
 
-        if exclude_list == []:
-            return
-        if self.train:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(fr1_list).reshape(1, -1)
-            fr2 = np.array(fr2_list).reshape(1, -1)
-            hybrid = np.array(hybrid_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            targets[hybrid_mask] = 2 # set all hybrids to Class~2
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
-        else:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(fr1_list).reshape(1, -1)
-            fr2 = np.array(fr2_list).reshape(1, -1)
-            hybrid = np.array(hybrid_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            targets[hybrid_mask] = 2 #set all hybrids to Class~2
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+        targets = np.array(self.targets)
+        exclude = np.array(exclude_list).reshape(1, -1)
+        exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
+        fr1 = np.array(fr1_list).reshape(1, -1)
+        fr2 = np.array(fr2_list).reshape(1, -1)
+        hybrid = np.array(hybrid_list).reshape(1, -1)
+        fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
+        fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
+        hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
+        targets[fr1_mask] = 0  # set all FRI to Class~0
+        targets[fr2_mask] = 1  # set all FRII to Class~1
+        targets[hybrid_mask] = 2 # set all hybrids to Class~2
+        self.data = self.data[exclude_mask]
+        self.targets = targets[exclude_mask].tolist()
+        self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+
+        if self.use_annotations:
+            self.use_human_annotations()
 
 
 class MBFRUncertain(MiraBest_F):
@@ -386,40 +354,23 @@ class MBFRUncertain(MiraBest_F):
         hybrid_list = [9]
         exclude_list = [0, 1, 2, 5, 6, 8]
 
-        if exclude_list == []:
-            return
-        if self.train:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(fr1_list).reshape(1, -1)
-            fr2 = np.array(fr2_list).reshape(1, -1)
-            hybrid = np.array(hybrid_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            targets[hybrid_mask] = 2 # set all hybrids to Class~2
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
-        else:
-            targets = np.array(self.targets)
-            exclude = np.array(exclude_list).reshape(1, -1)
-            exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
-            fr1 = np.array(fr1_list).reshape(1, -1)
-            fr2 = np.array(fr2_list).reshape(1, -1)
-            hybrid = np.array(hybrid_list).reshape(1, -1)
-            fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
-            fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
-            hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
-            targets[fr1_mask] = 0  # set all FRI to Class~0
-            targets[fr2_mask] = 1  # set all FRII to Class~1
-            targets[hybrid_mask] = 2 # set all hybrids to Class~2
-            self.data = self.data[exclude_mask]
-            self.targets = targets[exclude_mask].tolist()
-            self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+        targets = np.array(self.targets)
+        exclude = np.array(exclude_list).reshape(1, -1)
+        exclude_mask = ~(targets.reshape(-1, 1) == exclude).any(axis=1)
+        fr1 = np.array(fr1_list).reshape(1, -1)
+        fr2 = np.array(fr2_list).reshape(1, -1)
+        hybrid = np.array(hybrid_list).reshape(1, -1)
+        fr1_mask = (targets.reshape(-1, 1) == fr1).any(axis=1)
+        fr2_mask = (targets.reshape(-1, 1) == fr2).any(axis=1)
+        hybrid_mask = (targets.reshape(-1, 1) == hybrid).any(axis=1)
+        targets[fr1_mask] = 0  # set all FRI to Class~0
+        targets[fr2_mask] = 1  # set all FRII to Class~1
+        targets[hybrid_mask] = 2 # set all hybrids to Class~2
+        self.data = self.data[exclude_mask]
+        self.targets = targets[exclude_mask].tolist()
+        self.full_targets = np.array(self.full_targets)[exclude_mask].tolist()
+        if self.use_annotations:
+            self.use_human_annotations()
 
 
 class MBHybrid(MiraBest_F):
