@@ -149,6 +149,7 @@ class FineTune(pl.LightningModule):
         else:
             # Hard labels
             loss = F.cross_entropy(logits, y)
+        self.log("finetuning/train_loss", loss, on_step=False, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
