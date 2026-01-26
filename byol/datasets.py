@@ -194,7 +194,6 @@ class MiraBest_F(data.Dataset):
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
         img = np.reshape(img, (150, 150))
-        target = torch.tensor(target, dtype=torch.float32)
 
         if self.aug_type == "albumentations":
             if self.transform is not None:
@@ -214,6 +213,14 @@ class MiraBest_F(data.Dataset):
             raise NotImplementedError(
                 f"{self.aug_type} not implemented. Currently 'aug_type' must be either 'albumentations' which defaults to Albumentations or 'torchvision' to be functional."
             )
+        
+        if isinstance(target, list) or isinstance(target, np.ndarray):
+            # Soft label
+            target = torch.tensor(target, dtype=torch.float32)
+        else:
+            # Hard label
+            target = torch.tensor(target, dtype=torch.long)
+
         filename = self.filenames[index]
 
         return img, target, filename
