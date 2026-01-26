@@ -325,8 +325,6 @@ def main():
     pl.seed_everything(seed)
 
     # Initiate wandb logging
-    wandb.init(project=project_name, config=config)
-
     if args.calibration_batch is not None:
         dir_name = args.wandb_group + f"_CB{args.calibration_batch + 1}"
         logger = pl.loggers.WandbLogger(
