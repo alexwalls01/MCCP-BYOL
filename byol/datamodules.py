@@ -411,7 +411,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 train=True,
                 transform=self.train_transform,
                 calibration_batch=self.calibration_batch,
-                annotations=True,
+                use_annotations=True,
             )
             self.data["val"] = MBFRFull(
                 self.path,
@@ -419,7 +419,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 train=True,
                 transform=self.test_transform,
                 calibration_batch=self.calibration_batch,
-                annotations=True,
+                use_annotations=True,
             )
             self.data["calibration"] = MBFRFull(
                 self.path,
@@ -428,7 +428,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 calibration=True,
                 transform=self.test_transform,
                 calibration_batch=self.calibration_batch,
-                annotations=True,
+                use_annotations=True,
             )
 
         self.data["test"] = OrderedDict(
@@ -439,7 +439,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                     train=False,
                     test_size=None,
                     transform=self.test_transform,
-                    annotations=True,
+                    use_annotations=True,
                 ),
                 "MB_unc_test": MBFRUncertain(
                     self.path,
@@ -447,7 +447,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                     train=False,
                     test_size=None,
                     transform=self.test_transform,
-                    annotations=True,
+                    use_annotations=True,
                 ),
             },
         )
