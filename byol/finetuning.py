@@ -153,6 +153,7 @@ class FineTune(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
+        # This uses the training data with test transforms
         x, y, _ = batch
         if y.ndim == 2:
             y_hard = y.argmax(dim=1)
@@ -160,7 +161,7 @@ class FineTune(pl.LightningModule):
             y_hard = y
         preds = self.forward(x)
         self.val_acc(preds, y_hard)
-        self.log("finetuning/val_acc", self.val_acc, on_step=False, on_epoch=True)
+        self.log("finetuning/train_eval_acc", self.val_acc, on_step=False, on_epoch=True)
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
         x, y, _ = batch
