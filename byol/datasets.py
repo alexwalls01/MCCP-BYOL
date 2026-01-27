@@ -84,6 +84,7 @@ class MiraBest_F(data.Dataset):
         data_type="double",
         calibration_batch=None,
         use_annotations=False,
+        use_soft_labels=False,
     ):
         self.root = os.path.expanduser(root)
         self.transform = transform
@@ -91,6 +92,7 @@ class MiraBest_F(data.Dataset):
         self.train = train  # training set or test set
         self.aug_type = aug_type
         self.use_annotations = use_annotations
+        self.use_soft_labels = use_soft_labels
 
         if download:
             self.download()
@@ -270,7 +272,10 @@ class MiraBest_F(data.Dataset):
             label_dists = pickle.load(f)
         for idx, filename in enumerate(self.filenames):
             label_dist = label_dists[filename]
-            self.targets[idx] = np.array(label_dist, dtype=np.float32)
+            if self.use_soft_labels:
+                self.targets[idx] = np.array(label_dist, dtype=np.float32)
+            else:
+                self.targets[idx] = np.argmax(np.array(label_dist, dtype=np.float32))
 
 
 class MBFRFull(MiraBest_F):

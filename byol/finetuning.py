@@ -19,6 +19,7 @@ from datamodules import RGZ_DataModule_Finetune
 parser = argparse.ArgumentParser()
 parser.add_argument("--wandb-group", type=str, required=False, default=None)
 parser.add_argument("--calibration-batch", type=int, required=False, default=None)
+parser.add_argument("--use-soft-labels", type=int, required=False, default=0)
 args = parser.parse_args()
 
 class LogisticRegression(torch.nn.Module):
@@ -370,7 +371,8 @@ def main():
             num_workers=config["dataloading"]["num_workers"],
             prefetch_factor=config["dataloading"]["prefetch_factor"],
             pin_memory=config["dataloading"]["pin_memory"],
-            seed=seed
+            seed=seed,
+            use_soft_labels=args.use_soft_labels,
         )
     run_finetuning(config, model.encoder, finetune_datamodule, logger)
     logger.experiment.finish()

@@ -330,6 +330,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
         pin_memory=False,
         seed=69,
         calibration_batch=None,
+        use_soft_labels=False,
     ):
         super().__init__(
             path,
@@ -367,6 +368,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
         )
 
         self.calibration_batch = calibration_batch
+        self.use_soft_labels = use_soft_labels
 
     def prepare_data(self):
         pass
@@ -412,6 +414,7 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
                 transform=self.train_transform,
                 calibration_batch=self.calibration_batch,
                 use_annotations=True,
+                use_soft_labels=self.use_soft_labels,
             )
             self.data["val"] = MBFRFull(
                 self.path,
