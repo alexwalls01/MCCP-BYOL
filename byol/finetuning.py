@@ -302,7 +302,7 @@ def run_finetuning(config, encoder, datamodule, logger):
 
     trainer.fit(model, datamodule)
 
-    trainer.test(model, dataloaders=datamodule)
+    trainer.test(model, dataloaders=datamodule.test_dataloader())
 
     return checkpoint, model
 
