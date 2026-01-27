@@ -267,6 +267,7 @@ class MiraBest_F(data.Dataset):
         return fmt_str
     
     def use_human_annotations(self):
+        self.mb_labels = self.targets.copy()
         paths = Path_Handler()._dict()
         with open(paths["data"] / "label_dists.pkl", "rb") as f:
             label_dists = pickle.load(f)
@@ -275,7 +276,12 @@ class MiraBest_F(data.Dataset):
             if self.use_soft_labels:
                 self.targets[idx] = np.array(label_dist, dtype=np.float32)
             else:
-                self.targets[idx] = np.argmax(np.array(label_dist, dtype=np.float32))
+                max_val = max(label_dist)
+                if label_dist.count(max_val) > 1:
+                    # Default to MiraBest label if there is a tie
+                    self.targets[idx] = self.mb_labels[idx]
+                else:
+                    self.targets[idx] = np.argmax(np.array(label_dist, dtype=np.float32))
 
 
 class MBFRFull(MiraBest_F):
