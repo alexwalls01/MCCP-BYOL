@@ -137,8 +137,7 @@ class FineTune(pl.LightningModule):
             loss = -(y * log_p).sum(dim=1).mean()
         else:
             # Hard labels
-            y_pred = logits.softmax(dim=-1)
-            loss = F.cross_entropy(y_pred, y, label_smoothing=0.1 if self.n_layers else 0)
+            loss = F.cross_entropy(logits, y, label_smoothing=0.1 if self.n_layers else 0)
         self.log("finetuning/train_loss", loss, on_step=False, on_epoch=True)
         return loss
 
