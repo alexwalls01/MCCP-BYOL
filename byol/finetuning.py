@@ -339,7 +339,10 @@ def main():
     project_name = config["finetune"]["project"]
 
     seed = config["finetune"]["seed"]
-    pl.seed_everything(seed)
+    if args.calibration_batch is not None:
+        pl.seed_everything(seed + args.calibration_batch)
+    else:
+        pl.seed_everything(seed)
 
     # Initiate wandb logging
     if args.calibration_batch is not None:
