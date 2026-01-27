@@ -85,18 +85,6 @@ class FineTune(pl.LightningModule):
 
             self.layers = layers[::-1][:n_layers]
 
-        self.train_acc = tm.Accuracy(
-            task="multiclass", average="micro", threshold=0, num_classes=self.n_classes
-        ).to(self.device)
-
-        self.val_acc = tm.Accuracy(
-            task="multiclass", average="micro", threshold=0, num_classes=self.n_classes
-        ).to(self.device)
-
-        self.test_acc = tm.Accuracy(
-            task="multiclass", average="micro", threshold=0, num_classes=self.n_classes
-        ).to(self.device)
-
     def forward(self, x: Tensor) -> Tensor:
         x = self.encoder(x)
         x = rearrange(x, "b c h w -> b (c h w)")
