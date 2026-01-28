@@ -226,7 +226,7 @@ class MiraBest_F(data.Dataset):
         meta = {"filename": filename}
         if self.use_annotations:
             meta["mb_label"] = self.mb_labels[index]
-            meta["label_dist"] = self.label_dists[index]
+            meta["label_dist"] = self.label_dists[filename]
 
         return img, target, meta
 
