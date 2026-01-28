@@ -189,10 +189,8 @@ def get_results(model, dataloader, split_name, reducer):
         filenames = meta["filename"]
         label_dists = torch.stack(meta["label_dist"], dim=1)
         mb_labels = meta["mb_label"]
-        feats = model.encoder(x)
-        feats = feats.flatten(start_dim=1)
-        logits = model.head(feats)
-        logits = logits.cpu().numpy()
+        with torch.no_grad():
+            logits = model(x.to(device))
         for i in range(len(filenames)):
             label_dist = label_dists[i]
             if torch.is_tensor(label_dist):
