@@ -215,7 +215,7 @@ def main():
     out_dir = paths["files"] / "mccp" / args.wandb_group
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    run_name = args.wandb_group + "_CB" + str(args.calibration_batch)
+    run_name = args.wandb_group + "_CB" + str(args.calibration_batch + 1)
     ckpt_dir = paths["files"] / "finetune" / run_name / "MCCP-BYOL"
     ckpt_path = get_deepest_file(ckpt_dir)
 
@@ -254,7 +254,7 @@ def main():
     reducer = get_reducer(
         model,
         save_dir=paths["files"] / "mccp" / args.wandb_group,
-        run_name=f"CB_{args.calibration_batch}",
+        run_name=f"CB_{args.calibration_batch + 1}",
         transform=transform,
     )
 
