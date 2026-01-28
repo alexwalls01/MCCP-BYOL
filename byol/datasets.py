@@ -218,7 +218,7 @@ class MiraBest_F(data.Dataset):
         
         if isinstance(target, list) or isinstance(target, np.ndarray):
             # Soft label
-            target = [torch.tensor(target, dtype=torch.float32)]
+            target = torch.tensor(target, dtype=torch.float32)
         else:
             # Hard label
             target = torch.tensor(target, dtype=torch.long)
