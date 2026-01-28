@@ -190,6 +190,7 @@ def get_results(model, dataloader, split_name, reducer):
         label_dists = meta["label_dist"]
         mb_labels = meta["mb_label"]
         feats = model.encoder(x)
+        feats = feats.flatten(start_dim=1)
         logits = model.head(feats)
         logits = logits.cpu().numpy()
         for i in range(len(filenames)):
