@@ -184,19 +184,15 @@ def get_results(model, dataloader, split_name, reducer):
     device = next(model.parameters()).device
     model.eval()
     results = []
-    embeddings = []
     for x, _, meta in tqdm(dataloader, desc=f"Getting {split_name} results"):
-        print({k: (type(v), getattr(v, 'shape', None)) for k, v in meta.items()})
         x = x.to(device)
         filenames = meta["filename"]
         label_dists = meta["label_dist"]
         mb_labels = meta["mb_label"]
         feats = model.encoder(x)
-        feats = feats.flatten(start_dim=1)
         logits = model.head(feats)
-        feats = feats.cpu().numpy()
         logits = logits.cpu().numpy()
-        for i in range(len(meta)):
+        for i in range(len(filenames)):
             label_dist = label_dists[i]
             if torch.is_tensor(label_dist):
                 label_dist = label_dist.cpu().numpy()
@@ -209,9 +205,7 @@ def get_results(model, dataloader, split_name, reducer):
                 "mb_label": mb_labels[i],
                 "logits": logits[i],
             })
-            embeddings.append(feats[i])
-    embeddings = np.vstack(embeddings)
-    umap_coords = reducer.transform(embeddings)
+    umap_coords = reducer.transform(dataloader.dataset)
     for result, coords in zip(results, umap_coords):
         result["umap"] = coords
     return results
