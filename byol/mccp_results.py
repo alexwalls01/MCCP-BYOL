@@ -221,9 +221,13 @@ def main():
     ckpt_path = get_deepest_file(ckpt_dir)
 
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
-    config = byol_model.config
-    config.update(finetune_config)
     encoder = byol_model.encoder
+    config = byol_model.config
+    model = load_checkpoint(ckpt_path, encoder, config)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = model.to(device)
+    model.eval()
+    config.update(finetune_config)
 
     datamodule = RGZ_DataModule_Finetune(
         paths["mb"],
@@ -246,11 +250,6 @@ def main():
             T.Normalize((mu,), (sig,)),
         ]
     )
-    
-    model = load_checkpoint(ckpt_path, encoder, config)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = model.to(device)
-    model.eval()
 
     reducer = get_reducer(
         model,
