@@ -162,21 +162,9 @@ def get_deepest_file(root_dir):
                 deepest_file = os.path.join(dirpath, filename)
     return deepest_file
 
-def load_checkpoint(ckpt_path, encoder, config):
-    # Recreate the head based on your configuration
-    if config["finetune"]["head"] == "linear":
-        head = "linear"
-    elif config["finetune"]["head"] == "mlp":
-        head = MLPHead(
-            input_dim=encoder.dim,
-            depth=config["finetune"]["depth"],
-            width=config["finetune"]["width"],
-            output_dim=config["finetune"]["n_classes"],
-        )
-    else:
-        raise ValueError("Unsupported head type specified in config.")
+def load_checkpoint(ckpt_path, encoder):
     # Load the finetuned checkpoint
-    model = FineTune.load_from_checkpoint(ckpt_path, encoder=encoder, head=head)
+    model = FineTune.load_from_checkpoint(ckpt_path, encoder=encoder)
     return model
 
 @torch.no_grad()
@@ -190,7 +178,7 @@ def get_results(model, dataloader, split_name, reducer):
         label_dists = torch.stack(meta["label_dist"], dim=1)
         mb_labels = meta["mb_label"]
         with torch.no_grad():
-            logits = model(x.to(device))
+            logits = model(x)
         for i in range(len(filenames)):
             label_dist = label_dists[i]
             if torch.is_tensor(label_dist):
