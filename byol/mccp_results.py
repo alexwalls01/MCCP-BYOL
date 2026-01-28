@@ -193,7 +193,7 @@ def get_results(model, dataloader, split_name, reducer):
         feats = feats.flatten(start_dim=1)
         logits = model.head(feats)
         logits = logits.cpu().numpy()
-        for i in range(len(filenames)):
+        for i in range(len(meta)):
             label_dist = label_dists[i]
             if torch.is_tensor(label_dist):
                 label_dist = label_dist.cpu().numpy()
