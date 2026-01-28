@@ -235,7 +235,7 @@ def main():
         ]
     )
     
-    model = load_checkpoint(ckpt_path, encoder, config)
+    model = load_checkpoint(ckpt_path, encoder)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
     model.eval()
