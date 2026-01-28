@@ -191,7 +191,7 @@ class MiraBest_F(data.Dataset):
         Returns:
             tuple: (image, target) where target is index of the target class.
         """
-        img, target = self.data[index], self.targets[index]
+        img, target, filename = self.data[index], self.targets[index], self.filenames[index]
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
@@ -218,14 +218,17 @@ class MiraBest_F(data.Dataset):
         
         if isinstance(target, list) or isinstance(target, np.ndarray):
             # Soft label
-            target = torch.tensor(target, dtype=torch.float32)
+            target = [torch.tensor(target, dtype=torch.float32)]
         else:
             # Hard label
             target = torch.tensor(target, dtype=torch.long)
+        
+        meta = {"filename": filename}
+        if self.use_annotations:
+            meta["mb_label"] = self.mb_labels[index]
+            meta["label_dist"] = self.label_dists[index]
 
-        filename = self.filenames[index]
-
-        return img, target, filename
+        return img, target, meta
 
     def __len__(self):
         return len(self.data)
@@ -271,6 +274,7 @@ class MiraBest_F(data.Dataset):
         paths = Path_Handler()._dict()
         with open(paths["data"] / "label_dists.pkl", "rb") as f:
             label_dists = pickle.load(f)
+        self.label_dists = label_dists
         for idx, filename in enumerate(self.filenames):
             label_dist = label_dists[filename]
             if self.use_soft_labels:
