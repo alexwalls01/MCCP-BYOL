@@ -162,9 +162,21 @@ def get_deepest_file(root_dir):
                 deepest_file = os.path.join(dirpath, filename)
     return deepest_file
 
-def load_checkpoint(ckpt_path, encoder):
+def load_checkpoint(ckpt_path, encoder, config):
+    # Recreate the head based on your configuration
+    if config["finetune"]["head"] == "linear":
+        head = "linear"
+    elif config["finetune"]["head"] == "mlp":
+        head = MLPHead(
+            input_dim=encoder.dim,
+            depth=config["finetune"]["depth"],
+            width=config["finetune"]["width"],
+            output_dim=config["finetune"]["n_classes"],
+        )
+    else:
+        raise ValueError("Unsupported head type specified in config.")
     # Load the finetuned checkpoint
-    model = FineTune.load_from_checkpoint(ckpt_path, encoder=encoder)
+    model = FineTune.load_from_checkpoint(ckpt_path, encoder=encoder, head=head)
     return model
 
 @torch.no_grad()
@@ -235,7 +247,7 @@ def main():
         ]
     )
     
-    model = load_checkpoint(ckpt_path, encoder)
+    model = load_checkpoint(ckpt_path, encoder, config)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
     model.eval()
