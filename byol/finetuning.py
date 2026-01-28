@@ -354,6 +354,7 @@ def main():
             pin_memory=config["dataloading"]["pin_memory"],
             seed=seed,
             calibration_batch=args.calibration_batch,
+            use_soft_labels=args.use_soft_labels,
         )
     else:
         dir_name = args.wandb_group + "_" + str(wandb.run.id)
