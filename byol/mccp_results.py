@@ -187,13 +187,14 @@ def get_results(model, dataloader, split_name, reducer):
     for x, _, meta in tqdm(dataloader, desc=f"Getting {split_name} results"):
         x = x.to(device)
         filenames = meta["filename"]
+        logger.info(filenames)
         label_dists = meta["label_dist"]
         mb_labels = meta["mb_label"]
         feats = model.encoder(x)
         feats = feats.flatten(start_dim=1)
         logits = model.head(feats)
         logits = logits.cpu().numpy()
-        for i in range(len(meta)):
+        for i in range(len(filenames)):
             label_dist = label_dists[i]
             if torch.is_tensor(label_dist):
                 label_dist = label_dist.cpu().numpy()
