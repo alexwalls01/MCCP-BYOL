@@ -274,3 +274,6 @@ def main():
     with open(out_file, "wb") as f:
         pickle.dump(results, f)
     logger.info(f"Saved results to {out_file}.")
+
+if __name__ == "__main__":
+    main()
