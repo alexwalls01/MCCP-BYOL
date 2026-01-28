@@ -187,9 +187,10 @@ def get_results(model, dataloader, split_name, reducer):
     for x, _, meta in tqdm(dataloader, desc=f"Getting {split_name} results"):
         x = x.to(device)
         filenames = meta["filename"]
-        logger.info(filenames)
         label_dists = meta["label_dist"]
         mb_labels = meta["mb_label"]
+        logger.info(label_dists)
+        logger.info(len(filenames) == len(label_dists))
         feats = model.encoder(x)
         feats = feats.flatten(start_dim=1)
         logits = model.head(feats)
