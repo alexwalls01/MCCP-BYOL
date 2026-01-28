@@ -4,6 +4,7 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
+import sys
 import torch
 import torchvision.transforms as T
 
@@ -23,6 +24,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--wandb-group", type=str, required=True)
 parser.add_argument("--calibration-batch", type=int, required=True)
 args = parser.parse_args()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +186,7 @@ def get_results(model, dataloader, split_name, reducer):
     results = []
     embeddings = []
     for x, _, meta in tqdm(dataloader, desc=f"Getting {split_name} results"):
+        print({k: (type(v), getattr(v, 'shape', None)) for k, v in meta.items()})
         x = x.to(device)
         filenames = meta["filename"]
         label_dists = meta["label_dist"]
@@ -188,7 +196,7 @@ def get_results(model, dataloader, split_name, reducer):
         logits = model.head(feats)
         feats = feats.cpu().numpy()
         logits = logits.cpu().numpy()
-        for i in range(len(filenames)):
+        for i in range(len(meta)):
             label_dist = label_dists[i]
             if torch.is_tensor(label_dist):
                 label_dist = label_dist.cpu().numpy()
