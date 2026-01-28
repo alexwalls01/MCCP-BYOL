@@ -455,6 +455,17 @@ class RGZ_DataModule_Finetune(FineTuning_DataModule):
             },
         )
 
+    def calibration_dataloader(self):
+        loader = DataLoader(
+            self.data["calibration"],
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            prefetch_factor=self.prefetch_factor,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )
+        return loader
+
 
 class RGZ_DataModule_Finetune_Regression(FineTuning_DataModule):
     def __init__(
