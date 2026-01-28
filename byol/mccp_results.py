@@ -189,13 +189,14 @@ def get_results(model, dataloader, split_name, reducer):
         feats = feats.cpu().numpy()
         logits = logits.cpu().numpy()
         for i in range(len(filenames)):
-            label_dist = label_dists[i]
+            filename = filenames[i]
+            label_dist = label_dists[filename]
             if torch.is_tensor(label_dist):
                 label_dist = label_dist.cpu().numpy()
             elif isinstance(label_dist, list):
                 label_dist = np.array(label_dist, dtype=np.float32)
             results.append({
-                "filename": filenames[i],
+                "filename": filename,
                 "split": split_name,
                 "label_dist": label_dist,
                 "mb_label": mb_labels[i],
