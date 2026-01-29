@@ -126,6 +126,7 @@ class Reducer:
         return x
     
 def get_reducer(model, save_dir, run_name, transform):
+    save_dir.mkdir(parents=True, exist_ok=True)
     paths = Path_Handler()._dict()
     encoder = model.encoder
     encoder.eval()
@@ -211,6 +212,7 @@ def get_results(model, dataloader, split_name, reducer):
 
 def main():
     paths = Path_Handler()._dict()
+
     finetune_config = load_config_finetune()
 
     out_dir = paths["files"] / "mccp" / args.wandb_group
@@ -219,6 +221,7 @@ def main():
     run_name = args.wandb_group + "_CB" + str(args.calibration_batch + 1)
     ckpt_dir = paths["files"] / "finetune" / run_name / "MCCP-BYOL"
     ckpt_path = get_deepest_file(ckpt_dir)
+    logger.info(ckpt_path)
 
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
     config = byol_model.config
@@ -227,7 +230,7 @@ def main():
 
     datamodule = RGZ_DataModule_Finetune(
         paths["mb"],
-        batch_size=1024,
+        batch_size=config["finetune"]["batch_size"],
         center_crop=config["augmentations"]["center_crop"],
         val_size=config["finetune"]["val_size"],
         num_workers=config["dataloading"]["num_workers"],
@@ -254,8 +257,8 @@ def main():
 
     reducer = get_reducer(
         model,
-        save_dir=paths["files"] / "mccp" / args.wandb_group,
-        run_name=f"CB_{args.calibration_batch + 1}",
+        save_dir=out_dir / "reducers",
+        run_name=f"CB{args.calibration_batch + 1}",
         transform=transform,
     )
 
@@ -271,7 +274,7 @@ def main():
         split_results = get_results(model, dataloader, split, reducer)
         results.extend(split_results)
 
-    out_file = out_dir / f"CB{args.calibration_batch + 1}_results.pkl"
+    out_file = out_dir / "results" / f"CB{args.calibration_batch + 1}_results.pkl"
     with open(out_file, "wb") as f:
         pickle.dump(results, f)
     logger.info(f"Saved results to {out_file}.")
