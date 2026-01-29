@@ -187,10 +187,10 @@ def get_results(model, dataloader, split_name, reducer):
     results = []
     for x, _, meta in tqdm(dataloader, desc=f"Getting {split_name} results"):
         x = x.to(device)
+        logits = model(x)
         filenames = meta["filename"]
         label_dists = torch.stack(meta["label_dist"], dim=1)
         mb_labels = meta["mb_label"]
-        logits = model(x)
         for i in range(len(filenames)):
             label_dist = label_dists[i]
             if torch.is_tensor(label_dist):
@@ -225,6 +225,9 @@ def main():
     config.update(finetune_config)
     encoder = byol_model.encoder
     config["finetune"]["dim"] = encoder.dim
+    # Compatibility with old style config
+    if config["augmentations"]["center_crop"] is True:
+        config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
 
     datamodule = RGZ_DataModule_Finetune(
         paths["mb"],
@@ -248,10 +251,10 @@ def main():
         ]
     )
     
-    model = load_checkpoint(ckpt_path, encoder, finetune_config)
+    model = load_checkpoint(ckpt_path, encoder, config)
+    model.eval()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
-    model.eval()
 
     reducer = get_reducer(
         model,
