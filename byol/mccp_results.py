@@ -190,8 +190,7 @@ def get_results(model, dataloader, split_name, reducer):
         filenames = meta["filename"]
         label_dists = torch.stack(meta["label_dist"], dim=1)
         mb_labels = meta["mb_label"]
-        with torch.no_grad():
-            logits = model(x)
+        logits = model(x)
         for i in range(len(filenames)):
             label_dist = label_dists[i]
             if torch.is_tensor(label_dist):
@@ -216,17 +215,16 @@ def main():
     finetune_config = load_config_finetune()
 
     out_dir = paths["files"] / "mccp" / args.wandb_group
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     run_name = args.wandb_group + "_CB" + str(args.calibration_batch + 1)
     ckpt_dir = paths["files"] / "finetune" / run_name / "MCCP-BYOL"
     ckpt_path = get_deepest_file(ckpt_dir)
-    logger.info(ckpt_path)
 
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
     config = byol_model.config
     config.update(finetune_config)
     encoder = byol_model.encoder
+    config["finetune"]["dim"] = encoder.dim
 
     datamodule = RGZ_DataModule_Finetune(
         paths["mb"],
@@ -274,6 +272,8 @@ def main():
         split_results = get_results(model, dataloader, split, reducer)
         results.extend(split_results)
 
+    results_dir = out_dir / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "results" / f"CB{args.calibration_batch + 1}_results.pkl"
     with open(out_file, "wb") as f:
         pickle.dump(results, f)
