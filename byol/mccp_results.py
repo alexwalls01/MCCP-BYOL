@@ -276,12 +276,19 @@ def main():
         transform=transform,
     )
 
-    dataloaders = {
-        "train": datamodule.val_dataloader(),
-        "calibration": datamodule.calibration_dataloader(),
-        "test_conf": datamodule.test_dataloader()[0],
-        "test_uncert": datamodule.test_dataloader()[1],
-    }
+    if args.calibration_batch is not None:
+        dataloaders = {
+            "train": datamodule.val_dataloader(),
+            "calibration": datamodule.calibration_dataloader(),
+            "test_conf": datamodule.test_dataloader()[0],
+            "test_uncert": datamodule.test_dataloader()[1],
+        }
+    else:
+        dataloaders = {
+            "train": datamodule.val_dataloader(),
+            "test_conf": datamodule.test_dataloader()[0],
+            "test_uncert": datamodule.test_dataloader()[1],
+        }
 
     results = []
     for split, dataloader in dataloaders.items():
