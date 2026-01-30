@@ -357,7 +357,7 @@ def main():
             use_soft_labels=args.use_soft_labels,
         )
     else:
-        dir_name = args.wandb_group + "_" + str(wandb.run.id)
+        dir_name = args.wandb_group
         logger = pl.loggers.WandbLogger(
             project=project_name,
             group=args.wandb_group,

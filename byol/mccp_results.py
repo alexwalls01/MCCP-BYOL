@@ -22,7 +22,7 @@ from paths import Path_Handler
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--wandb-group", type=str, required=True)
-parser.add_argument("--calibration-batch", type=int, required=True)
+parser.add_argument("--calibration-batch", type=int, required=False, default=None)
 args = parser.parse_args()
 
 logging.basicConfig(
@@ -216,8 +216,11 @@ def main():
 
     out_dir = paths["files"] / "mccp" / args.wandb_group
 
-    run_name = args.wandb_group + "_CB" + str(args.calibration_batch + 1)
-    ckpt_dir = paths["files"] / "finetune" / run_name / "MCCP-BYOL"
+    if args.calibration_batch is not None:
+        run_name = args.wandb_group + "_CB" + str(args.calibration_batch + 1)
+    else:
+        run_name = args.wandb_group
+    ckpt_dir = paths["files"] / "finetune" / run_name / finetune_config["finetune"]["project"]
     ckpt_path = get_deepest_file(ckpt_dir)
 
     byol_model = BYOL.load_from_checkpoint("byol.ckpt")
@@ -229,6 +232,11 @@ def main():
     if config["augmentations"]["center_crop"] is True:
         config["augmentations"]["center_crop"] = config["augmentations"]["center_crop_size"]
 
+    if args.calibration_batch is not None:
+        seed = config["finetune"]["seed"] + args.calibration_batch
+    else:
+        seed = config["finetune"]["seed"]
+
     datamodule = RGZ_DataModule_Finetune(
         paths["mb"],
         batch_size=config["finetune"]["batch_size"],
@@ -237,7 +245,7 @@ def main():
         num_workers=config["dataloading"]["num_workers"],
         prefetch_factor=config["dataloading"]["prefetch_factor"],
         pin_memory=config["dataloading"]["pin_memory"],
-        seed = config["finetune"]["seed"] + args.calibration_batch,
+        seed=seed,
         calibration_batch=args.calibration_batch,
     )
     datamodule.setup()
@@ -256,10 +264,15 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
 
+    if args.calibration_batch is not None:
+        reducer_name = f"CB{args.calibration_batch + 1}"
+    else:
+        reducer_name = args.wandb_group
+
     reducer = get_reducer(
         model,
         save_dir=out_dir / "reducers",
-        run_name=f"CB{args.calibration_batch + 1}",
+        run_name=reducer_name,
         transform=transform,
     )
 
@@ -277,7 +290,10 @@ def main():
 
     results_dir = out_dir / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / "results" / f"CB{args.calibration_batch + 1}_results.pkl"
+    if args.calibration_batch is not None:
+        out_file = out_dir / "results" / f"CB{args.calibration_batch + 1}_results.pkl"
+    else:
+        out_file = out_dir / "results" / f"{args.wandb_group}_results.pkl"
     with open(out_file, "wb") as f:
         pickle.dump(results, f)
     logger.info(f"Saved results to {out_file}.")
