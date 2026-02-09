@@ -23,6 +23,7 @@ from paths import Path_Handler
 parser = argparse.ArgumentParser()
 parser.add_argument("--wandb-group", type=str, required=True)
 parser.add_argument("--calibration-batch", type=int, required=False, default=None)
+parser.add_argument("--rgz", type=int, required=False, default=0)
 args = parser.parse_args()
 
 logging.basicConfig(
@@ -209,6 +210,36 @@ def get_results(model, dataloader, split_name, reducer):
         result["umap"] = coords
     return results
 
+@torch.no_grad()
+def get_rgz_results(model, reducer, transform):
+    device = next(model.parameters()).device
+    model.eval()
+    paths = Path_Handler()._dict()
+    dataset = RGZ108k(
+        paths["rgz"],
+        train=True,
+        transform=transform,
+        download=False,
+        remove_duplicates=False,
+        cut_threshold=25,
+        mb_cut=True,
+        )
+    loader = DataLoader(dataset, batch_size=256, shuffle=False)
+    outputs = []
+    for x, _, meta in tqdm(loader, desc="Getting RGZ results"):
+        x = x.to(device)
+        logits = model(x)
+        filenames = meta["filename"]
+        for i in range(len(filenames)):
+            outputs.append({
+                "filename": filenames[i],
+                "logits": logits[i].cpu().numpy(),
+            })
+    umap_coords = reducer.transform(dataset)
+    for i, coords in enumerate(umap_coords):
+        outputs[i]["umap"] = coords
+    return outputs
+
 def main():
     paths = Path_Handler()._dict()
 
@@ -304,6 +335,13 @@ def main():
     with open(out_file, "wb") as f:
         pickle.dump(results, f)
     logger.info(f"Saved results to {out_file}.")
+
+    if args.rgz:
+        rgz_results = get_rgz_results(model, reducer, transform)
+        out_file = out_dir / "results" / f"RGZ_results.pkl"
+        with open(out_file, "wb") as f:
+            pickle.dump(rgz_results, f)
+        logger.info(f"Saved RGZ results to {out_file}.")
 
 if __name__ == "__main__":
     main()
