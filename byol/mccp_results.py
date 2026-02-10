@@ -336,7 +336,10 @@ def main():
 
     if args.rgz:
         rgz_results = get_rgz_results(model, reducer, transform)
-        out_file = out_dir / "results" / f"RGZ_results.pkl"
+        if args.calibration_batch is not None:
+            out_file = out_dir / "results" / f"CB{args.calibration_batch}_RGZ_results.pkl"
+        else:
+            out_file = out_dir / "results" / f"RGZ_results.pkl"
         with open(out_file, "wb") as f:
             pickle.dump(rgz_results, f)
         logger.info(f"Saved RGZ results to {out_file}.")
