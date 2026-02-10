@@ -226,13 +226,11 @@ def get_rgz_results(model, reducer, transform):
         )
     loader = DataLoader(dataset, batch_size=256, shuffle=False)
     outputs = []
-    for x, _, meta in tqdm(loader, desc="Getting RGZ results"):
+    for x, _ in tqdm(loader, desc="Getting RGZ results"):
         x = x.to(device)
         logits = model(x)
-        filenames = meta["filename"]
-        for i in range(len(filenames)):
+        for i in range(len(logits)):
             outputs.append({
-                "filename": filenames[i],
                 "logits": logits[i].cpu().numpy(),
             })
     umap_coords = reducer.transform(dataset)
