@@ -16,13 +16,6 @@ from config import load_config_finetune
 from models import BYOL
 from datamodules import RGZ_DataModule_Finetune
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--wandb-group", type=str, required=False, default=None)
-parser.add_argument("--calibration-batch", type=int, required=False, default=None)
-parser.add_argument("--rgz", type=int, required=False, default=0)
-parser.add_argument("--use-soft-labels", type=int, required=False, default=0)
-args = parser.parse_args()
-
 class LogisticRegression(torch.nn.Module):
     def __init__(self, input_dim, output_dim):
         super().__init__()
@@ -303,6 +296,12 @@ def set_grads(module, value: bool):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--wandb-group", type=str, required=False, default=None)
+    parser.add_argument("--calibration-batch", type=int, required=False, default=None)
+    parser.add_argument("--use-soft-labels", type=int, required=False, default=0)
+    args = parser.parse_args()
+    
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s: %(message)s",
