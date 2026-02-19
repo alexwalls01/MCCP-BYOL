@@ -238,86 +238,6 @@ def get_rgz_results(model, reducer, transform):
         outputs[i]["umap"] = coords
     return outputs
 
-def plot_umap_rgz(umap, values, save_path,
-                     n_classes=None, categorical=False,
-                     cmap="viridis", grey_background=False,
-                     limit_cbar=False, cbar_title=None,
-                     custom_labels=None, point_alpha=0.85):
-    umap = np.asarray(umap)
-    values = np.asarray(values)
-    fig, ax = plt.subplots(figsize=(6, 6))
-    if categorical:
-        cmap_obj = plt.get_cmap(cmap)
-        if n_classes is None:
-            n_classes = int(np.nanmax(values)) + 1
-        for c in range(n_classes):
-            mask = values == c
-            if not np.any(mask):
-                continue
-            ax.scatter(
-                umap[mask, 0], umap[mask, 1],
-                c=[c] * np.sum(mask),
-                cmap=cmap_obj,
-                vmin=0,
-                vmax=n_classes - 1,
-                alpha=point_alpha,
-                s=20,
-                edgecolors="none",
-            )
-        if custom_labels is None:
-            handles = [
-                Line2D([0], [0], marker='o', color='w',
-                       markerfacecolor=cmap_obj(i), markersize=8, label=i)
-                for i in range(n_classes)
-            ]
-        else:
-            handles = [
-                Line2D([0], [0], marker='o', color='w',
-                       markerfacecolor=cmap_obj(i), markersize=8, label=custom_labels[i])
-                for i in range(n_classes)
-            ]
-        ax.legend(handles=handles, loc="upper right", title="Class", title_fontsize=14)
-    else:
-        norm = Normalize(vmin=0.0, vmax=1.0) if not limit_cbar else Normalize(vmin=np.min(values), vmax=np.max(values))
-        if grey_background:
-            ax.scatter(
-                umap[:, 0], umap[:, 1],
-                c="lightgrey",
-                alpha=0.3,
-                s=20,
-                edgecolors="none"
-            )
-        ax.scatter(
-            umap[:, 0], umap[:, 1],
-            c=values,
-            cmap=cmap,
-            norm=norm,
-            alpha=point_alpha,
-            s=20,
-            edgecolors="none"
-        )
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.1)
-        sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
-        sm.set_array(values)
-        cbar = plt.colorbar(sm, cax=cax)
-        if cbar_title is not None:
-            cbar.set_label(cbar_title)
-    ax.set_xlabel("UMAP x")
-    ax.set_ylabel("UMAP y")
-    x_min, x_max = umap[:, 0].min(), umap[:, 0].max()
-    y_min, y_max = umap[:, 1].min(), umap[:, 1].max()
-    span = max(x_max - x_min, y_max - y_min)
-    x_center = (x_max + x_min) / 2
-    y_center = (y_max + y_min) / 2
-    ax.set_xlim(x_center - span/2 - 0.5, x_center + span/2 + 0.5)
-    ax.set_ylim(y_center - span/2 - 0.5, y_center + span/2 + 0.5)
-    ax.set_aspect('equal', adjustable='box')
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=600)
-    plt.close()
-
-
 def main():
     paths = Path_Handler()._dict()
 
@@ -328,7 +248,7 @@ def main():
     if args.calibration_batch is not None:
         run_name = args.wandb_group + "_CB" + str(args.calibration_batch + 1)
     else:
-        run_name = args.wandb_group
+        run_name = args.wandb_group + "_full"
     ckpt_dir = paths["files"] / "finetune" / run_name / finetune_config["finetune"]["project"]
     ckpt_path = get_deepest_file(ckpt_dir)
 
@@ -368,6 +288,7 @@ def main():
         ]
     )
     
+    logger.info(f"Loading model from {ckpt_path} ...")
     model = load_checkpoint(ckpt_path, encoder, config)
     model.eval()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -376,7 +297,7 @@ def main():
     if args.calibration_batch is not None:
         reducer_name = f"CB{args.calibration_batch + 1}"
     else:
-        reducer_name = args.wandb_group
+        reducer_name = args.wandb_group + "_full"
 
     reducer = get_reducer(
         model,
@@ -409,7 +330,7 @@ def main():
     if args.calibration_batch is not None:
         out_file = out_dir / "results" / f"CB{args.calibration_batch + 1}_results.pkl"
     else:
-        out_file = out_dir / "results" / f"{args.wandb_group}_results.pkl"
+        out_file = out_dir / "results" / f"full_results.pkl"
     with open(out_file, "wb") as f:
         pickle.dump(results, f)
     logger.info(f"Saved results to {out_file}.")
@@ -419,7 +340,7 @@ def main():
         if args.calibration_batch is not None:
             out_file = out_dir / "results" / f"CB{args.calibration_batch + 1}_RGZ_results.pkl"
         else:
-            out_file = out_dir / "results" / f"RGZ_results.pkl"
+            out_file = out_dir / "results" / f"full_RGZ_results.pkl"
         with open(out_file, "wb") as f:
             pickle.dump(rgz_results, f)
         logger.info(f"Saved RGZ results to {out_file}.")
